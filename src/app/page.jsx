@@ -173,7 +173,7 @@ export default function Page() {
       </header>
 
       {/* Hero — offset by fixed nav height */}
-      <section className="relative z-10 mx-auto flex w-full max-w-4xl flex-1 flex-col items-center justify-center px-4 pt-[72px] text-center sm:px-6 md:justify-start md:pt-[calc(72px+6vh)]">
+      <section className="relative z-10 mx-auto flex w-full max-w-4xl flex-1 flex-col items-center justify-center px-4 pt-[40px] text-center sm:px-6 md:justify-start md:pt-[calc(72px+6vh)]">
         <FadeUp index={0} className="mb-4 sm:mb-5">
           <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card/60 px-3 py-1.5 text-[10px] uppercase tracking-[0.15em] text-muted-foreground shadow-[0_0_20px_rgba(249,115,22,0.15)] backdrop-blur sm:px-4 sm:text-xs">
             <Sparkles className="h-3.5 w-3.5 shrink-0 text-primary" />

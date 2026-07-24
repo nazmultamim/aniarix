@@ -1,7 +1,7 @@
 import { Poppins } from "next/font/google";
 import "./globals.css";
 import { getCanonicalUrl, siteConfig } from "@/lib/site-config";
-import AntiInspectGuard from "@/components/security/AntiInspectGuard";
+// import AntiInspectGuard from "@/components/security/AntiInspectGuard";
 
 const poppins = Poppins({
   variable: "--font-poppins",
@@ -20,16 +20,32 @@ export const metadata = {
     type: 'website',
     siteName: siteConfig.name,
     title: siteConfig.name,
-    description: siteConfig.description,
+    description: 'Discover thousands of anime on AniArix. Watch HD anime online, explore trending and seasonal releases, and enjoy a fast, modern anime streaming experience.',
     url: getCanonicalUrl('/'),
-    images: ['/og.jpg'],
+    images: [
+      {
+        url: '/og.jpg',
+        width: 1200,
+        height: 630,
+        alt: siteConfig.name,
+        type: 'image/jpeg',
+      },
+    ],
   },
   twitter: {
     card: 'summary_large_image',
     title: siteConfig.name,
     description: siteConfig.description,
-    images: ['/og.jpg'],
+    images: [
+      {
+        url: '/og.jpg',
+        width: 1200,
+        height: 630,
+        alt: siteConfig.name,
+      },
+    ],
   },
+
 };
 
 export const viewport = {
@@ -45,8 +61,8 @@ export default function RootLayout({ children }) {
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col" suppressHydrationWarning>
-       <AntiInspectGuard />
-       {children}
+        {/* <AntiInspectGuard /> */}
+        {children}
       </body>
     </html>
   );
