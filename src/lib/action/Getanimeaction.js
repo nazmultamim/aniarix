@@ -2,10 +2,12 @@
 
 import { getAnimeDetails, getRecentAnime, getTopAnime, getTrendingAnime, AniListApiError } from '@/services/anilist.service';
 import { CACHE_TTL, getCached, setCached } from '@/services/Cache.service';
+import { slugify } from '@/lib/slugify';
 
 const DEFAULT_PAGE_SIZE = 24;
 const HERO_SLIDES_CACHE_KEY = 'hero-anime-slides:v5';
 const SELECTED_ANIME_CACHE_PREFIX = 'selected-anime:v3';
+const SLUG_MAP_PREFIX = 'slug-to-anilist:v1';
 
 function isAlreadyReleasedAnime(item) {
   const status = String(item?.status || '').toUpperCase();
@@ -45,7 +47,7 @@ function mapAnime(item) {
   return {
     id: getStableAnimeId(item),
     anilist_id: item.anilist_id != null ? String(item.anilist_id) : null,
-    slug: item.slug ?? null,
+    slug: item.slug ?? slugify(item.title || item.title_english || item.title_native || item.id),
     title: item.title || item.title_english || item.title_native || null,
     title_english: item.title_english || item.title || null,
     title_japanese: item.title_native || null,
@@ -261,10 +263,13 @@ export async function cacheSelectedAnimeAction(anime) {
     return { error: 'Anime ID is required.' };
   }
 
+  const slug = anime?.slug || slugify(anime?.title || anime?.title_english || anime?.title_native || String(anilistId));
+
   const payload = {
     ...anime,
     anilist_id: String(anilistId),
     id: anime?.id ?? String(anilistId),
+    slug,
     genres: anime?.genres ?? anime?.genre ?? [],
     genre: anime?.genres ?? anime?.genre ?? [],
     poster_image: anime?.poster_image ?? anime?.poster ?? null,
@@ -280,7 +285,77 @@ export async function cacheSelectedAnimeAction(anime) {
     CACHE_TTL.TWELVE_HOURS
   );
 
+  await setCached(
+    `${SLUG_MAP_PREFIX}:${slug}`,
+    { anilistId: String(anilistId) },
+    CACHE_TTL.TWELVE_HOURS
+  );
+
   return { success: true, anime: payload };
+}
+
+export async function storeSlugMapping(slug, anilistId) {
+  if (!slug || !anilistId) return;
+  await setCached(
+    `${SLUG_MAP_PREFIX}:${slug}`,
+    { anilistId: String(anilistId) },
+    CACHE_TTL.TWELVE_HOURS
+  );
+}
+
+export async function getAnimeIdBySlugAction(slug) {
+  if (!slug) return { anilistId: null };
+
+  const cached = await getCached(`${SLUG_MAP_PREFIX}:${slug}`);
+  if (cached?.anilistId) {
+    return { anilistId: String(cached.anilistId) };
+  }
+
+  try {
+    const query = `
+      query ($search: String) {
+        Page(page: 1, perPage: 5) {
+          media(type: ANIME, search: $search, sort: SEARCH_MATCH) {
+            id
+            title { romaji english native }
+          }
+        }
+      }
+    `;
+
+    const searchTitle = slug.replace(/-/g, ' ');
+    const res = await fetch('https://graphql.anilist.co', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ query, variables: { search: searchTitle } }),
+    });
+
+    if (!res.ok) return { anilistId: null };
+
+    const json = await res.json();
+    const candidates = json?.data?.Page?.media || [];
+
+    for (const candidate of candidates) {
+      const titles = [candidate.title?.romaji, candidate.title?.english, candidate.title?.native].filter(Boolean);
+
+      for (const title of titles) {
+        const candidateSlug = slugify(title);
+        if (candidateSlug === slug) {
+          await storeSlugMapping(slug, candidate.id);
+          return { anilistId: String(candidate.id) };
+        }
+      }
+    }
+
+    if (candidates.length > 0) {
+      await storeSlugMapping(slug, candidates[0].id);
+      return { anilistId: String(candidates[0].id) };
+    }
+  } catch (err) {
+    console.error('[getAnimeIdBySlugAction] Failed to resolve slug:', slug, err);
+  }
+
+  return { anilistId: null };
 }
 
 export async function getSelectedAnimeCacheAction(anilistId) {

@@ -13,7 +13,7 @@ export const siteConfig = {
   ],
   themeColor: '#0f1116',
   backgroundColor: '#09090b',
-  startUrl: '/',
+  startUrl: '/home',
   scope: '/',
   display: 'standalone',
   orientation: 'portrait-primary',

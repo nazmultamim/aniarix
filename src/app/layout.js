@@ -1,6 +1,7 @@
 import { Poppins } from "next/font/google";
 import "./globals.css";
 import { getCanonicalUrl, siteConfig } from "@/lib/site-config";
+import AntiInspectGuard from "@/components/security/AntiInspectGuard";
 
 const poppins = Poppins({
   variable: "--font-poppins",
@@ -21,13 +22,13 @@ export const metadata = {
     title: siteConfig.name,
     description: siteConfig.description,
     url: getCanonicalUrl('/'),
-    images: ['/og.png'],
+    images: ['/og.jpg'],
   },
   twitter: {
     card: 'summary_large_image',
     title: siteConfig.name,
     description: siteConfig.description,
-    images: ['/og.png'],
+    images: ['/og.jpg'],
   },
 };
 
@@ -41,8 +42,10 @@ export default function RootLayout({ children }) {
     <html
       lang="en"
       className={` ${poppins.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col">
+      <body className="min-h-full flex flex-col" suppressHydrationWarning>
+       <AntiInspectGuard />
        {children}
       </body>
     </html>

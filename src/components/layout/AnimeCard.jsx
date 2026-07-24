@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { Star, Tv } from 'lucide-react';
+import { slugify } from '@/lib/slugify';
 
 function toDisplayLabel(value) {
   if (typeof value === 'string') return value;
@@ -18,15 +19,12 @@ export default function AnimeCard({ anime }) {
     anime?.title_english ||
     anime?.title ||
     'Untitled anime';
+  const slug = anime?.slug || slugify(title);
 
   const anilistId = anime?.anilist_id ?? anime?.id ?? null;
   const watchHref = anilistId
-    ? `/watch?${new URLSearchParams({
-        anilist_id: String(anilistId),
-        title,
-        episodes: String(anime.episodes || 1),
-      }).toString()}`
-    : '/watch';
+    ? `/watch/${slug}/ep-1`
+    : '/anime';
 
   return (
     <Link

@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Search, Menu, X, Home, Compass, TrendingUp, ChevronRight, LogIn } from 'lucide-react';
+import { Search, Menu, X, Home, Compass, TrendingUp, ChevronRight } from 'lucide-react';
 
 const navLinks = [
   { label: 'Home', href: '/home', icon: Home },
@@ -17,12 +17,17 @@ export default function Navbar() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchValue, setSearchValue] = useState('');
-  const [isMounted, setIsMounted] = useState(false);
+  const [isHydrated, setIsHydrated] = useState(false);
   const mobileSearchRef = useRef(null);
   const desktopSearchRef = useRef(null);
+  const resolvedPathname = pathname ?? '/';
 
   useEffect(() => {
-    setIsMounted(true);
+    const frameId = window.requestAnimationFrame(() => {
+      setIsHydrated(true);
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
   }, []);
 
   // Submit search -> navigate to /search?q=...
@@ -83,7 +88,7 @@ export default function Navbar() {
           {/* Center (desktop only): Nav links */}
           <div className="hidden md:flex items-center gap-1 flex-1 justify-center">
             {navLinks.map(({ label, href }) => {
-              const isActive = label === 'Home' ? (isMounted && pathname === '/') : false;
+              const isActive = label === 'Home' ? (isHydrated && resolvedPathname === '/') : false;
               return (
                 <Link
                   key={label}
@@ -104,30 +109,32 @@ export default function Navbar() {
 
           {/* Right (desktop): Search bar */}
           <div className="hidden md:flex items-center relative group w-64">
-            <div className="absolute left-3.5 top-1/2 -translate-y-1/2 flex items-center gap-2 pointer-events-none">
-              <Search className="w-4 h-4 text-muted-foreground group-focus-within:text-orange-500 transition-colors" />
+            <div className="relative group w-64">
+              <div className="absolute left-3.5 top-1/2 -translate-y-1/2 flex items-center gap-2 pointer-events-none">
+                <Search className="w-4 h-4 text-muted-foreground group-focus-within:text-orange-500 transition-colors" />
+              </div>
+              <input
+                ref={desktopSearchRef}
+                type="search"
+                value={searchValue}
+                onChange={e => setSearchValue(e.target.value)}
+                onKeyDown={handleSearchKeyDown}
+                placeholder="Search anime, genres..."
+                className="w-full h-10 bg-white/5 border border-white/8 rounded-xl pl-10 pr-4 text-sm text-white placeholder:text-muted-foreground/60 focus:outline-none focus:bg-white/8 focus:border-orange-500/50 focus:shadow-[0_0_0_3px_rgba(249,115,22,0.12),inset_0_0_20px_rgba(249,115,22,0.04)] transition-all"
+              />
+              {searchValue && (
+                <button
+                  onClick={() => setSearchValue('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-white transition-colors"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+              <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-orange-500/5 to-red-500/5 opacity-0 group-focus-within:opacity-100 pointer-events-none transition-opacity" />
             </div>
-            <input
-              ref={desktopSearchRef}
-              type="search"
-              value={searchValue}
-              onChange={e => setSearchValue(e.target.value)}
-              onKeyDown={handleSearchKeyDown}
-              placeholder="Search anime, genres..."
-              className="w-full h-10 bg-white/5 border border-white/8 rounded-xl pl-10 pr-4 text-sm text-white placeholder:text-muted-foreground/60 focus:outline-none focus:bg-white/8 focus:border-orange-500/50 focus:shadow-[0_0_0_3px_rgba(249,115,22,0.12),inset_0_0_20px_rgba(249,115,22,0.04)] transition-all"
-            />
-            {searchValue && (
-              <button
-                onClick={() => setSearchValue('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-white transition-colors"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            )}
-            <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-orange-500/5 to-red-500/5 opacity-0 group-focus-within:opacity-100 pointer-events-none transition-opacity" />
           </div>
 
-          {/* Right (mobile only): Search icon + Sign in */}
+          {/* Right (mobile only): Search icon */}
           <div className="md:hidden flex items-center gap-2 shrink-0">
             <button
               onClick={() => setSearchOpen(prev => !prev)}
@@ -200,7 +207,7 @@ export default function Navbar() {
               Navigation
             </p>
             {navLinks.map(({ label, href, icon: Icon }) => {
-              const isActive = label === 'Home' ? (isMounted && pathname === '/') : false;
+              const isActive = label === 'Home' ? (isHydrated && resolvedPathname === '/') : false;
               return (
                 <Link
                   key={label}

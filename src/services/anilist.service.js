@@ -1,6 +1,7 @@
 import { getOrSetCache, CACHE_TTL } from './Cache.service';
 import { graphqlRequest, AniListApiError } from '@/graphql/client';
 import { MEDIA_DETAIL_QUERY, MEDIA_PAGE_QUERY } from '@/graphql/queries';
+import { slugify } from '@/lib/slugify';
 
 export { AniListApiError } from '@/graphql/client';
 
@@ -8,14 +9,6 @@ const DEFAULT_PAGE_SIZE = 20;
 
 function getQueryPageSize(requestedSize) {
   return Math.min(100, Math.max(60, Number(requestedSize) || DEFAULT_PAGE_SIZE));
-}
-
-function slugify(value) {
-  return String(value || '')
-    .toLowerCase()
-    .normalize('NFKD')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/(^-|-$)/g, '');
 }
 
 function stripHtml(value) {

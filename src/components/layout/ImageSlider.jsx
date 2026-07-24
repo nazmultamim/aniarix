@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Play, ChevronLeft, ChevronRight, Star } from "lucide-react";
 import { cacheSelectedAnimeAction, getHeroAnimeSlidesAction } from "@/lib/action/Getanimeaction";
+import { slugify } from "@/lib/slugify";
 
 const AUTOPLAY_MS = 6000;
 
@@ -75,19 +76,13 @@ export function Hhomeimgeslider() {
         return () => el.removeEventListener("keydown", onKeyDown);
     }, [next]);
 
-    const slide = slides[current];
+    const slide = slides[current] || null;
     const anilistId = slide?.anilist_id ?? slide?.id ?? null;
+    const slideTitle = slide?.title || slide?.title_english || "Anime";
+    const slug = slide?.slug || slugify(slideTitle);
     const watchHref = anilistId
-        ? `/watch?${new URLSearchParams({
-            anilist_id: String(anilistId),
-            title: slide.title || slide.title_english || "Anime",
-            ...(slide.episodes != null ? { episodes: String(slide.episodes) } : {}),
-            ...(slide.type ? { type: String(slide.type) } : {}),
-            ...(slide.score != null ? { score: String(slide.score) } : {}),
-            ...(slide.status ? { status: String(slide.status) } : {}),
-            ...(slide.year != null ? { year: String(slide.year) } : {}),
-        }).toString()}`
-        : "/watch";
+        ? `/watch/${slug}/ep-1`
+        : "/anime";
 
     if (loading) {
         return (

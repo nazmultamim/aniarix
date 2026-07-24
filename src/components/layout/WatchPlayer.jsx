@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import {
   Home,
   ChevronRight,
@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { DEFAULT_SERVER, SERVERS, buildEmbedUrl } from '@/services/servers.config';
 import { handlePlayerMessage, getProgressEntry } from '@/services/progressTracker.service';
+import { slugify } from '@/lib/slugify';
 
 const EPISODES_PER_PAGE = 100;
 
@@ -30,36 +31,28 @@ function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
 }
 
-export default function WatchPlayer({ initialAnimeId = null, initialAnime = null }) {
+export default function WatchPlayer({ initialAnimeId = null, initialAnime = null, initialEpisode = 1 }) {
   const router = useRouter();
+  const routeParams = useParams();
   const searchParams = useSearchParams();
 
-  const urlAnimeId = searchParams.get('anilist_id');
+  const slugParam = Array.isArray(routeParams?.slug) ? routeParams.slug[0] : routeParams?.slug;
+  const routeSlug = slugParam || initialAnime?.slug || slugify(initialAnime?.title_english || initialAnime?.title || initialAnimeId || 'watch');
   const selectedAnimeId = initialAnime?.anilist_id ?? initialAnime?.id ?? initialAnimeId ?? null;
-  const anilistId = urlAnimeId || selectedAnimeId;
-  const initialTitle =
-    searchParams.get('title') ||
-    initialAnime?.title_english ||
-    initialAnime?.title ||
-    'Now Watching';
-  const initialPoster =
-    searchParams.get('poster') ||
-    initialAnime?.poster_image ||
-    initialAnime?.poster ||
-    initialAnime?.banner ||
-    '';
+  const anilistId = selectedAnimeId;
+  const initialTitle = initialAnime?.title_english || initialAnime?.title || 'Now Watching';
+  const initialPoster = initialAnime?.poster_image || initialAnime?.poster || initialAnime?.banner || '';
 
   const [pageTitle, setPageTitle] = useState(initialTitle);
   const [posterUrl, setPosterUrl] = useState(initialPoster);
-  const initialEpisodes = parseInt(searchParams.get('episodes'), 10);
-  const hasCustomEpisodeCount = Number.isFinite(initialEpisodes) && initialEpisodes > 1;
+  const hasCustomEpisodeCount = Number(initialAnime?.episodes) > 1;
   const [totalEpisodes, setTotalEpisodes] = useState(() =>
-    clamp(Number.isFinite(initialEpisodes) ? initialEpisodes : Number(initialAnime?.episodes) || 1, 1, 5000)
+    clamp(Number(initialAnime?.episodes) || 1, 1, 5000)
   );
 
-  const [episode, setEpisode] = useState(() =>
-    clamp(parseInt(searchParams.get('ep'), 10) || 1, 1, totalEpisodes)
-  );
+  const routeEpisodeParam = Array.isArray(routeParams?.ep) ? routeParams.ep[0] : routeParams?.ep;
+  const episodeFromUrl = parseInt(String(routeEpisodeParam || `ep-${initialEpisode || 1}`).replace(/^ep-/, ''), 10) || Number(initialEpisode) || 1;
+  const [episode, setEpisode] = useState(() => clamp(episodeFromUrl, 1, totalEpisodes));
   const [language, setLanguage] = useState(() =>
     searchParams.get('lang') === 'dub' ? 'dub' : 'sub'
   );
@@ -78,14 +71,6 @@ export default function WatchPlayer({ initialAnimeId = null, initialAnime = null
   const [resumeTime, setResumeTime] = useState(0);
 
   const playerWrapRef = useRef(null);
-
-  useEffect(() => {
-    if (!selectedAnimeId || urlAnimeId) return;
-
-    const params = new URLSearchParams(searchParams.toString());
-    params.set('anilist_id', String(selectedAnimeId));
-    router.replace(`?${params.toString()}`, { scroll: false });
-  }, [router, searchParams, selectedAnimeId, urlAnimeId]);
 
   useEffect(() => {
     if (!anilistId) return;
@@ -137,13 +122,13 @@ export default function WatchPlayer({ initialAnimeId = null, initialAnime = null
     };
   }, [anilistId, hasCustomEpisodeCount]);
 
-  const syncUrl = useCallback((nextEpisode, nextLanguage) => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set('ep', String(nextEpisode));
-    params.set('lang', nextLanguage);
-    params.set('server', serverId);
-    router.replace(`?${params.toString()}`, { scroll: false });
-  }, [router, searchParams, serverId]);
+  const syncUrl = useCallback((nextEpisode, nextLanguage, nextServer = serverId) => {
+    const params = new URLSearchParams();
+    if (nextLanguage) params.set('lang', nextLanguage);
+    if (nextServer) params.set('server', nextServer);
+    const query = params.toString();
+    router.replace(`/watch/${routeSlug}/ep-${nextEpisode}${query ? `?${query}` : ''}`, { scroll: false });
+  }, [router, routeSlug, serverId]);
 
   const handleEpisodeSelect = useCallback((num) => {
     const clamped = clamp(num, 1, totalEpisodes);
@@ -167,12 +152,8 @@ export default function WatchPlayer({ initialAnimeId = null, initialAnime = null
 
     setServerId(server.id);
     setPlayerLoading(true);
-    const params = new URLSearchParams(searchParams.toString());
-    params.set('ep', String(episode));
-    params.set('lang', language);
-    params.set('server', server.id);
-    router.replace(`?${params.toString()}`, { scroll: false });
-  }, [episode, language, router, searchParams]);
+    syncUrl(episode, language, server.id);
+  }, [episode, language, syncUrl]);
 
   useEffect(() => {
     function handleMessage(event) {

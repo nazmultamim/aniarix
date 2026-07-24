@@ -2,6 +2,7 @@ import Link from 'next/link';
 import {
   Star, Play, Tv, Calendar, Clock, Hash, Layers, Sparkles, ShieldAlert, Radio,
 } from 'lucide-react';
+import { slugify } from '@/lib/slugify';
 
 // ── Vertical detail row (label left, value right) ──────────────────
 function DetailRow({ icon: Icon, label, children, highlight }) {
@@ -51,15 +52,12 @@ export default function AnimeDetail({ anime }) {
   const titleJapanese = anime.title_japanese || '—';
   const posterUrl = anime.poster_image || 'https://placehold.co/400x600/1a1a1a/444444?text=No+Image';
   const airedFromLabel = formatAiredDate(anime.aired_from);
+  const slug = anime.slug || slugify(titleEnglish);
 
   // Everything the /watch page needs travels via URL — no extra fetch there.
   const anilistId = anime.anilist_id ?? anime.id ?? null;
   const watchHref = anilistId
-    ? `/watch?${new URLSearchParams({
-        anilist_id: String(anilistId),
-        episodes: String(anime.episodes || 1),
-        title: titleEnglish,
-      }).toString()}`
+    ? `/watch/${slug}/ep-1`
     : null;
 
   return (

@@ -4,6 +4,7 @@ const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
 
 const PRECACHE_URLS = [
   '/',
+  '/home',
   '/anime',
   '/watch',
   '/site.webmanifest',
@@ -81,7 +82,7 @@ self.addEventListener('fetch', (event) => {
   const sameOrigin = url.origin === self.location.origin;
 
   if (request.mode === 'navigate') {
-    event.respondWith(networkFirst(request, '/'));
+    event.respondWith(networkFirst(request, '/home'));
     return;
   }
 
