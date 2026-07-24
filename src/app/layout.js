@@ -24,7 +24,7 @@ export const metadata = {
     url: getCanonicalUrl('/'),
     images: [
       {
-        url: '/og.jpg',
+        url: 'https://www.aniarix.site/og.jpg',
         width: 1200,
         height: 630,
         alt: siteConfig.name,
@@ -38,7 +38,7 @@ export const metadata = {
     description: siteConfig.description,
     images: [
       {
-        url: '/og.jpg',
+        url: 'https://www.aniarix.site/og.jpg',
         width: 1200,
         height: 630,
         alt: siteConfig.name,
