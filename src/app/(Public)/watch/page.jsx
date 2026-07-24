@@ -125,10 +125,10 @@ function MetaRow({ label, value, accent }) {
   if (!value) return null;
   return (
     <li className="flex items-start gap-2.5 py-1.5">
-      <span className="mt-[6px] h-[9px] w-[9px] shrink-0 rounded-[2px] bg-[#a575cb]" />
+      <span className="mt-[6px] h-[9px] w-[9px] shrink-0 rounded-[2px] bg-orange-400" />
       <p className="text-[13.5px] leading-snug">
         <span className="font-semibold text-orange-400">{label}: </span>
-        <span className={accent ? 'text-[#c096e2] cursor-pointer hover:text-[#d8b6f0] transition-colors' : 'text-[#c4c4ce]'}>
+        <span className={accent ? 'text-[#ffa353] cursor-pointer hover:text-[#ff9e3d] transition-colors' : 'text-[#c4c4ce]'}>
           {value}
         </span>
       </p>
@@ -152,7 +152,6 @@ export default async function WatchPage({ searchParams }) {
   const genres = anime?.genres || [];
   const tags = Array.isArray(anime?.tags) ? anime.tags.slice(0, 30) : [];
   const titleNative = anime?.title_japanese || null;
-  const titleRomaji = anime?.title || null;
   const premiereLabel = formatSeasonLabel(anime?.season, anime?.season_year);
   const airedFrom = formatDateLabel(anime?.aired_from);
   const airedTo = formatDateLabel(anime?.aired_to);

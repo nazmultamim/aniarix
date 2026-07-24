@@ -22,6 +22,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { DEFAULT_SERVER, SERVERS, buildEmbedUrl } from '@/services/servers.config';
+import { handlePlayerMessage, getProgressEntry } from '@/services/progressTracker.service';
 
 const EPISODES_PER_PAGE = 100;
 
@@ -74,6 +75,7 @@ export default function WatchPlayer({ initialAnimeId = null, initialAnime = null
   const [resumeBanner, setResumeBanner] = useState(null);
   const [pageIndex, setPageIndex] = useState(() => Math.floor((episode - 1) / EPISODES_PER_PAGE));
   const [playerLoading, setPlayerLoading] = useState(true);
+  const [resumeTime, setResumeTime] = useState(0);
 
   const playerWrapRef = useRef(null);
 
@@ -174,38 +176,52 @@ export default function WatchPlayer({ initialAnimeId = null, initialAnime = null
 
   useEffect(() => {
     function handleMessage(event) {
-      let data = event.data;
-      if (typeof data === 'string') {
-        try {
-          data = JSON.parse(data);
-        } catch {
-          return;
+      handlePlayerMessage(
+        event,
+        {
+          anilistId,
+          episode,
+          serverId,
+          language,
+        },
+        {
+          onProgress: (entry) => {
+            setPlayerLoading(false);
+            if (entry.status === 'completed') {
+              setResumeTime(0);
+            }
+          },
+          onComplete: () => {
+            if (autoNext && episode < totalEpisodes) {
+              handleEpisodeSelect(episode + 1);
+            }
+          },
+          onError: (entry) => {
+            setPlayerLoading(false);
+            console.error('Player error:', entry);
+          },
+          onPlaying: () => {
+            setPlayerLoading(false);
+          },
         }
-      }
-      if (!data || typeof data !== 'object') return;
-
-      if (data.channel && data.channel !== 'megacloud') return;
-
-      if (data.event === 'time') {
-        setPlayerLoading(false);
-      }
-
-      if (data.type === 'watching-log') {
-        setPlayerLoading(false);
-      }
-
-      if (data.event === 'complete' && autoNext && episode < totalEpisodes) {
-        handleEpisodeSelect(episode + 1);
-      }
-
-      if (data.event === 'error') {
-        console.error('MegaPlay player error:', data);
-      }
+      );
     }
 
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, [autoNext, episode, handleEpisodeSelect, totalEpisodes]);
+  }, [anilistId, autoNext, episode, handleEpisodeSelect, language, serverId, totalEpisodes]);
+
+  useEffect(() => {
+    if (!anilistId || !episode) return;
+
+    const existing = getProgressEntry(anilistId, episode);
+    const resume = existing && existing.status !== 'completed' ? Math.floor(existing.currentTime || 0) : 0;
+    const frame = window.requestAnimationFrame(() => {
+      setResumeTime(resume);
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [anilistId, episode, serverId]);
 
   function handleExpand() {
     playerWrapRef.current?.requestFullscreen?.();
@@ -308,6 +324,11 @@ export default function WatchPlayer({ initialAnimeId = null, initialAnime = null
               <p className="mt-0.5 text-xs text-muted-foreground/40">
                 If the player is not loading, try refreshing the page.
               </p>
+              {resumeTime > 0 && (
+                <p className="mt-1 text-xs text-orange-300/80">
+                  Resume point saved at {Math.floor(resumeTime)}s.
+                </p>
+              )}
             </div>
 
             <div className="grid shrink-0 gap-2">
