@@ -7,6 +7,7 @@ import { getCanonicalUrl, siteConfig } from '@/lib/site-config';
 
 export const dynamic = 'force-dynamic';
 
+
 function getFirst(value) {
   return Array.isArray(value) ? value[0] : value;
 }
@@ -58,6 +59,15 @@ export async function generateMetadata({ params }) {
       title: `${displayTitle} | AniArix`,
       description: `${displayTitle}${japaneseTitle} on AniArix.`,
       images: socialImages,
+    },
+    robots: {
+      index: false,
+      follow: false,
+      nocache: true,
+      googleBot: {
+        index: false,
+        follow: false,
+      },
     },
   };
 }
