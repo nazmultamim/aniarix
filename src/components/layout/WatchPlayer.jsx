@@ -65,7 +65,6 @@ export default function WatchPlayer({ initialAnimeId = null, initialAnime = null
   const [autoSkip, setAutoSkip] = useState(false);
   const [bookmarked, setBookmarked] = useState(false);
   const [theatreMode, setTheatreMode] = useState(false);
-  const [resumeBanner, setResumeBanner] = useState(null);
   const [pageIndex, setPageIndex] = useState(() => Math.floor((episode - 1) / EPISODES_PER_PAGE));
   const [playerLoading, setPlayerLoading] = useState(true);
   const [resumeTime, setResumeTime] = useState(0);
@@ -134,7 +133,6 @@ export default function WatchPlayer({ initialAnimeId = null, initialAnime = null
     const clamped = clamp(num, 1, totalEpisodes);
     setEpisode(clamped);
     setPageIndex(Math.floor((clamped - 1) / EPISODES_PER_PAGE));
-    setResumeBanner(null);
     setPlayerLoading(true);
     syncUrl(clamped, language);
   }, [language, syncUrl, totalEpisodes]);
@@ -229,7 +227,7 @@ export default function WatchPlayer({ initialAnimeId = null, initialAnime = null
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center gap-2 px-1 text-sm text-muted-foreground/60">
-        <Link href="/" className="flex items-center gap-1.5 transition-colors hover:text-white">
+        <Link href="/home" className="flex items-center gap-1.5 transition-colors hover:text-white">
           <Home className="w-4 h-4" /> Home
         </Link>
         <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/30" />
@@ -279,25 +277,10 @@ export default function WatchPlayer({ initialAnimeId = null, initialAnime = null
             <span className="mx-1 hidden h-5 w-px bg-white/[0.08] sm:block" />
             <ToolbarButton icon={SkipBack} label="Prev" onClick={() => handleEpisodeSelect(episode - 1)} disabled={episode <= 1} />
             <ToolbarButton icon={SkipForward} label="Next" onClick={() => handleEpisodeSelect(episode + 1)} disabled={episode >= totalEpisodes} />
-            <span className="mx-1 hidden h-5 w-px bg-white/[0.08] sm:block" />
-            <ToolbarButton icon={Heart} label="Bookmark" active={bookmarked} onClick={() => setBookmarked((value) => !value)} />
-            <ToolbarButton icon={Users} label="W2G" />
-            <ToolbarButton icon={Flag} label="Report" />
+            <span className="mx-1 hidden h-5 w-px bg-white/[0.08]" />
+            {/* <ToolbarButton icon={Heart} label="Bookmark" active={bookmarked} onClick={() => setBookmarked((value) => !value)} /> */}
           </div>
 
-          {resumeBanner && (
-            <div className="flex items-center justify-between gap-3 border-t border-orange-500/20 bg-gradient-to-r from-orange-500/15 to-red-500/5 px-4 py-2.5">
-              <span className="text-xs font-medium text-orange-300">
-                Resumed from Episode {resumeBanner}, where you left off.
-              </span>
-              <button
-                onClick={() => setResumeBanner(null)}
-                className="shrink-0 text-xs font-semibold text-orange-400/70 transition-colors hover:text-orange-300"
-              >
-                Dismiss
-              </button>
-            </div>
-          )}
 
           <div className="flex flex-col justify-between gap-3 border-t border-white/[0.06] bg-white/[0.015] px-4 py-4 sm:flex-row sm:items-center">
             <div className="min-w-0">
@@ -306,13 +289,13 @@ export default function WatchPlayer({ initialAnimeId = null, initialAnime = null
                 If the player is not loading, try refreshing the page.
               </p>
               {resumeTime > 0 && (
-                <p className="mt-1 text-xs text-orange-300/80">
+                <p className="mt-1 text-xs text-orange-300/80 hidden">
                   Resume point saved at {Math.floor(resumeTime)}s.
                 </p>
               )}
             </div>
 
-            <div className="grid shrink-0 gap-2">
+            <div className="grid shrink-0 gap-6">
               <div className="grid grid-cols-3 gap-2">
                 {SERVERS.map((server) => (
                   <ServerPill
@@ -323,10 +306,7 @@ export default function WatchPlayer({ initialAnimeId = null, initialAnime = null
                   />
                 ))}
               </div>
-              <div className="grid grid-cols-[auto_1fr] items-center gap-2">
-                <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/40">
-                  Lang
-                </span>
+              <div className="grid grid-cols-[auto_1fr] text-center gap-2">
                 <div className="grid grid-cols-2 gap-2">
                   <LangPill
                     icon={Captions}
@@ -350,17 +330,7 @@ export default function WatchPlayer({ initialAnimeId = null, initialAnime = null
           <div className="w-full self-start overflow-hidden rounded-2xl border border-white/[0.08] bg-card/50 shadow-[0_8px_40px_rgba(0,0,0,0.4)]">
             <div className="flex items-center justify-between gap-2 border-b border-white/[0.06] px-4 py-3.5">
               <h2 className="text-sm font-bold text-white">Episodes</h2>
-              <div className="flex items-center gap-1">
-                <button aria-label="Search episodes" className="rounded-lg p-1.5 text-muted-foreground/40 transition-colors hover:bg-white/[0.06] hover:text-white">
-                  <Search className="w-4 h-4" />
-                </button>
-                <button aria-label="Toggle subtitles" className="rounded-lg bg-orange-500/10 p-1.5 text-orange-400 transition-colors hover:bg-orange-500/15">
-                  <Captions className="w-4 h-4" />
-                </button>
-                <button aria-label="Toggle dub" className="rounded-lg p-1.5 text-muted-foreground/40 transition-colors hover:bg-white/[0.06] hover:text-white">
-                  <Mic className="w-4 h-4" />
-                </button>
-              </div>
+       
             </div>
 
             {pageCount > 1 && (
@@ -430,7 +400,7 @@ function LangPill({ icon: Icon, label, active, onClick }) {
     <button
       type="button"
       onClick={onClick}
-      className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-bold transition-all ${
+      className={`flex text-center gap-1.5 rounded-lg border px-2 py-1.5 text-xs font-bold transition-all ${
         active
           ? 'border-orange-500/40 bg-orange-500/15 text-orange-300'
           : 'border-white/[0.1] bg-white/[0.04] text-muted-foreground hover:text-white'
@@ -447,7 +417,7 @@ function ServerPill({ label, active, onClick }) {
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-lg border px-3 py-1.5 text-xs font-bold transition-all ${
+      className={`rounded-lg text-center border px-3 py-1.5 text-xs font-bold transition-all ${
         active
           ? 'border-orange-500/40 bg-orange-500/15 text-orange-300'
           : 'border-white/[0.1] bg-white/[0.04] text-muted-foreground hover:text-white'

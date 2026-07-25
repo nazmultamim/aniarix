@@ -1,5 +1,4 @@
 import { getCanonicalUrl, siteConfig } from '@/lib/site-config';
-import Link from 'next/link';
 
 export const metadata = {
   title: 'About',
@@ -8,8 +7,6 @@ export const metadata = {
     canonical: getCanonicalUrl('/about'),
   },
 };
-
-
 
 function Section({ title, children }) {
   return (
@@ -49,8 +46,8 @@ export default function AboutPage() {
           Welcome to <strong className="text-white">AniArix</strong>, your destination for
           discovering and streaming anime in a fast, clean, and premium experience. Our goal is
           simple: make it easy for anime fans to find their favorite series, watch episodes
-          without unnecessary distractions, and enjoy a modern interface built specifically for
-          the anime community.
+          without sign-ups or unnecessary distractions, and enjoy a modern interface built
+          specifically for the anime community.
         </p>
 
         <Section title="Extensive Anime Library">
@@ -81,30 +78,11 @@ export default function AboutPage() {
           </p>
         </Section>
 
-        <Section title="No Registration Required">
+        <Section title="100% Free & No Sign-up Required">
           <p>
-            AniArix lets you start watching instantly. Browse the anime library, explore detailed
-            information, and stream episodes without creating an account. Simply search for your
-            favorite anime, choose an episode, and start watching.
-          </p>
-        </Section>
-
-        <Section title="Personalized Features">
-          <p>
-            Creating a free AniArix account unlocks additional features designed to personalize
-            your experience.
-          </p>
-          <p className="font-semibold text-white/90">Registered users can:</p>
-          <List
-            items={[
-              'Save favorite anime',
-              'View and manage watch history',
-              'Sync their personal library across devices',
-              'Access future account-based features',
-            ]}
-          />
-          <p className="mt-3">
-            Streaming and browsing remain completely available without registration.
+            AniArix lets you start watching instantly without logins or registration. Browse the
+            anime library, explore detailed information, and stream episodes freely. Simply search
+            for your favorite anime, choose an episode, and enjoy the story.
           </p>
         </Section>
 
@@ -115,6 +93,7 @@ export default function AboutPage() {
           </p>
           <List
             items={[
+              'Instant access without accounts',
               'Powerful anime search',
               'Browse by genre',
               'Top-rated anime',
@@ -122,15 +101,13 @@ export default function AboutPage() {
               'Seasonal anime',
               'Recently released anime',
               'Detailed anime information',
-              'Reliable streaming via a trusted provider',
-              'Multiple video quality options (provider-dependent)',
+              'Reliable streaming via trusted providers',
+              'Multiple video quality options',
               'Subbed and dubbed streaming (when available)',
-              'Favorite anime collection (Account Required)',
-              'Watch history (Account Required)',
               'Responsive design',
               'Dark mode optimized interface',
               'Mobile-friendly experience',
-              'Fast loading with intelligent caching',
+              'Fast loading speeds',
             ]}
           />
         </Section>
@@ -141,23 +118,23 @@ export default function AboutPage() {
             <li>Search for an anime or browse by genre, season, or popularity.</li>
             <li>Open the anime details page.</li>
             <li>Select the episode you want to watch.</li>
-            <li>Choose your preferred language if multiple versions are available.</li>
+            <li>Choose your preferred language option (Sub/Dub) if available.</li>
             <li>Press Watch Now and enjoy your anime.</li>
           </ol>
-          <p className="mt-3">
-            You do not need an account to stream anime. Creating an account is only required for
-            saving favorites and watch history.
-          </p>
         </Section>
 
         <Section title="Anime Information">
           <p>
-            AniArix uses anime metadata provided by the{' '}
-            <a href="https://anilist.co/" target="_blank" rel="noopener noreferrer" className="text-orange-400 hover:text-orange-300 underline underline-offset-2">
-              AniLst
+            AniArix uses metadata provided by{' '}
+            <a
+              href="https://anilist.co/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-orange-400 hover:text-orange-300 underline underline-offset-2"
+            >
+              AniList
             </a>{' '}
-           to deliver accurate and up-to-date
-            information, including:
+            to deliver accurate and up-to-date information, including:
           </p>
           <List
             items={[
@@ -175,18 +152,12 @@ export default function AboutPage() {
               'Format',
             ]}
           />
-          <p className="mt-3 text-xs text-muted-foreground/50">
-            Supplementary episode information during playback may also be sourced from AniList.
-          </p>
-          <p className="mt-3">
-            This information helps users discover anime and make informed viewing choices.
-          </p>
         </Section>
 
         <Section title="Streaming">
           <p>AniArix does not host video files on its own servers.</p>
           <p>
-            Video playback is provided through a trusted third-party streaming provider.
+            Video playback is provided through trusted third-party streaming providers.
             Availability, video quality, language options, and playback performance may vary
             depending on the selected anime and episode.
           </p>
@@ -204,20 +175,13 @@ export default function AboutPage() {
               'Smart TVs with modern web browsers',
             ]}
           />
-          <p className="mt-3">
-            For the best experience, we recommend using the latest versions of Chrome, Firefox,
-            Edge, or Safari.
-          </p>
         </Section>
 
         <Section title="Privacy">
           <p>Your privacy is important to us.</p>
-          <p>AniArix does not require an account to browse or stream anime.</p>
           <p>
-            If you choose to create an account, your personal data is limited to features such as
-            Favorites and Watch History. This information is securely associated with your
-            account and is never shared publicly. We only collect the information necessary to
-            provide these personalized features.
+            AniArix does not require any account creation, login credentials, or personal information
+            to browse or stream anime.
           </p>
         </Section>
 
@@ -225,9 +189,8 @@ export default function AboutPage() {
           <p>AniArix respects the rights of copyright holders.</p>
           <p>
             We do not claim ownership of anime titles, artwork, trademarks, or other intellectual
-            property displayed on the platform. Anime information is provided by the AniList
-          , while streaming content is delivered through a third-party
-            provider.
+            property displayed on the platform. Anime information is provided by AniList, while
+            streaming content is delivered through third-party providers.
           </p>
         </Section>
 
@@ -238,48 +201,38 @@ export default function AboutPage() {
               <p>Yes. AniArix is completely free to browse and stream.</p>
             </div>
             <div>
-              <p className="font-semibold text-white/90">Do I need an account?</p>
-              <p>No. You can browse the anime library and stream episodes without registering.</p>
-            </div>
-            <div>
-              <p className="font-semibold text-white/90">Why should I create an account?</p>
+              <p className="font-semibold text-white/90">Do I need an account to watch?</p>
               <p>
-                Creating an account allows you to save your favorite anime, access your watch
-                history, and synchronize your personalized library across devices.
+                No. AniArix is completely open—you can stream any anime without registering or
+                logging in.
               </p>
             </div>
             <div>
               <p className="font-semibold text-white/90">Where does the anime information come from?</p>
               <p>
-                Anime details, ratings, genres, and other metadata are provided by the Jikan API
-                (built on MyAnimeList data).
+                Anime details, ratings, genres, and metadata are provided by public anime APIs
+                like AniList.
               </p>
             </div>
             <div>
-              <p className="font-semibold text-white/90">Can I watch anime on my phone?</p>
-              <p>Yes. AniArix is fully optimized for smartphones, tablets, laptops, and desktop computers.</p>
+              <p className="font-semibold text-white/90">Can I watch anime on my mobile device?</p>
+              <p>
+                Yes. AniArix is fully optimized for smartphones, tablets, laptops, and desktop
+                computers.
+              </p>
             </div>
           </div>
         </Section>
 
         <Section title="Our Mission">
           <p>
-            Our mission is to build one of the fastest, cleanest, and most enjoyable anime
+            Our mission is to build one of the fastest, cleanest, and most hassle-free anime
             streaming platforms on the web.
           </p>
           <p>
             AniArix focuses on performance, simplicity, elegant design, and effortless anime
-            discovery. We continuously improve the platform by enhancing speed, expanding
-            features, refining the user experience, and delivering a premium environment where
-            anime fans can enjoy their favorite series without unnecessary complexity.
-          </p>
-        </Section>
-
-        <Section title="Changes to the Service">
-          <p>
-            AniArix may update, improve, or modify features and services at any time to enhance
-            the overall user experience. Significant platform updates may be announced through
-            the website when appropriate.
+            discovery. We continuously improve the platform so anime fans can enjoy their favorite
+            series without unnecessary complexity.
           </p>
         </Section>
 
@@ -287,13 +240,14 @@ export default function AboutPage() {
           <p>Questions, suggestions, or feedback? We&apos;d love to hear from you.</p>
           <p>
             If you encounter an issue, have a feature request, or want to help improve AniArix,
-            please contact us through our Contact page. Community feedback plays an important
-            role in helping us build a better platform for anime fans around the world.
+            please contact us through our Contact page.
           </p>
         </Section>
 
         <div className="mt-12 pt-8 border-t border-white/[0.06] text-center">
-          <p className="text-white font-semibold mb-1">Thank you for being part of the AniArix community.</p>
+          <p className="text-white font-semibold mb-1">
+            Thank you for being part of the AniArix community.
+          </p>
           <p className="text-sm text-muted-foreground/60">
             Welcome to AniArix — Stream More. Discover More. Enjoy More.
           </p>

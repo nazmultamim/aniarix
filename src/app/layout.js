@@ -1,4 +1,5 @@
 import { Poppins } from "next/font/google";
+import Script from 'next/script';
 import "./globals.css";
 import { getCanonicalUrl, siteConfig } from "@/lib/site-config";
 // import AntiInspectGuard from "@/components/security/AntiInspectGuard";
@@ -16,6 +17,20 @@ export const metadata = {
     template: `%s | ${siteConfig.name}`,
   },
   description: siteConfig.description,
+  alternates: {
+    canonical: '/',
+  },
+  manifest: '/site.webmanifest',
+  icons: {
+    icon: [
+      { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
+      { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/android-chrome-192x192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/android-chrome-512x512.png', sizes: '512x512', type: 'image/png' },
+    ],
+    apple: [{ url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }],
+    shortcut: ['/favicon.ico'],
+  },
   openGraph: {
     type: 'website',
     siteName: siteConfig.name,
@@ -45,6 +60,15 @@ export const metadata = {
       },
     ],
   },
+  appleWebApp: {
+    capable: true,
+    title: siteConfig.name,
+    statusBarStyle: 'black-translucent',
+  },
+  other: {
+    'mobile-web-app-capable': 'yes',
+    'application-name': siteConfig.name,
+  },
 
 };
 
@@ -60,6 +84,17 @@ export default function RootLayout({ children }) {
       className={` ${poppins.variable} h-full antialiased`}
       suppressHydrationWarning
     >
+      <head>
+        <Script
+          src="https://pl30523146.effectivecpmnetwork.com/e8/d6/91/e8d69195a93273058c3692daaf810072.js"
+          strategy="afterInteractive"
+        />
+        <Script
+          src="https://pl30523336.effectivecpmnetwork.com/49/d1/5e/49d15ef820cd00dcd37dbbe8cbe15ed1.js"
+          strategy="afterInteractive"
+        />
+
+      </head>
       <body className="min-h-full flex flex-col" suppressHydrationWarning>
         {/* <AntiInspectGuard /> */}
         {children}

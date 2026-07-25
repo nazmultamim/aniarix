@@ -284,7 +284,7 @@ export default async function WatchPage({ params }) {
                   genres.map((genre) => (
                     <span
                       key={genre}
-                      className="cursor-pointer rounded-full border border-[#a575cb]/40 px-2.5 py-1 text-[#c096e2] transition-colors hover:bg-[#a575cb]/10"
+                      className="cursor-pointer rounded-full border border-[#f09527]/40 px-2.5 py-1 text-[#f39933] transition-colors hover:bg-[#f0982e]/10"
                     >
                       {genre}
                     </span>
@@ -378,7 +378,7 @@ export default async function WatchPage({ params }) {
                     genres.map((genre) => (
                       <span
                         key={genre}
-                        className="cursor-pointer rounded-full border border-[#a575cb]/40 px-2.5 py-1 text-[#c096e2] transition-colors hover:bg-[#a575cb]/10"
+                        className="cursor-pointer rounded-full border border-[#f09527]/40 px-2.5 py-1 text-[#f39933] transition-colors hover:bg-[#f0982e]/10"
                       >
                         {genre}
                       </span>
