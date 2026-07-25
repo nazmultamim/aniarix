@@ -103,4 +103,4 @@ Content-Signal: search=yes,ai-train=no,use=reference
 # Sitemap
 # ==========================================================
 
-Sitemap: https://aniarix.com/sitemap.xml
+Sitemap: https://www.aniarix.site/sitemap.xml
