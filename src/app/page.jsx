@@ -25,7 +25,7 @@ const gradientText = {
 
 const NAV_LINKS = [
   { href: "/anime", label: "Anime" },
-  { href: "/top-rated", label: "Top Rated" },
+  { href: "/trending", label: "Trending" },
   { href: "/about", label: "About" },
 ];
 

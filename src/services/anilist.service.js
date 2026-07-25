@@ -370,14 +370,18 @@ export async function getSeasonalAnime(year, season, page = 1) {
   return data;
 }
 
-export async function getTrendingAnime(limit = 20) {
+export async function getTrendingAnime(page = 1, limit = 20) {
+  const safePage = Math.max(1, Number(page) || 1);
   const requestedPageSize = Math.min(Math.max(1, Number(limit) || 20), 25);
-  const key = requestedPageSize === 20 ? 'trending-anime' : `trending-anime:${requestedPageSize}`;
+  const key =
+    safePage === 1 && requestedPageSize === 20
+      ? 'trending-anime'
+      : `trending-anime:${safePage}:${requestedPageSize}`;
   const { data } = await getOrSetCache(
     key,
     async () => {
       const result = await graphqlRequest(MEDIA_PAGE_QUERY, {
-        ...buildPageVariables(1, getQueryPageSize(requestedPageSize), { orderBy: 'trending', sort: 'desc' }),
+        ...buildPageVariables(safePage, getQueryPageSize(requestedPageSize), { orderBy: 'trending', sort: 'desc' }),
       });
       const pageResult = result?.Page;
       const items = (pageResult?.media || [])
@@ -387,7 +391,7 @@ export async function getTrendingAnime(limit = 20) {
         .slice(0, requestedPageSize);
       return {
         results: items,
-        pagination: normalizePagination(pageResult?.pageInfo, 1, requestedPageSize),
+        pagination: normalizePagination(pageResult?.pageInfo, safePage, requestedPageSize),
       };
     },
     CACHE_TTL.TWELVE_HOURS

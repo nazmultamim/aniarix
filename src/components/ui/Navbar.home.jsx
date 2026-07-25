@@ -8,7 +8,7 @@ import { Search, Menu, X, Home, Compass, TrendingUp, ChevronRight } from 'lucide
 const navLinks = [
   { label: 'Home', href: '/home', icon: Home },
   { label: 'All Anime', href: '/anime', icon: Compass },
-  { label: 'Top Rated', href: '#', icon: TrendingUp },
+  { label: 'Trending', href: '/trending', icon: TrendingUp },
 ];
 
 export default function Navbar() {

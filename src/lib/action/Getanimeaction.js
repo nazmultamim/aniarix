@@ -258,9 +258,10 @@ export async function getHeroAnimeSlidesAction() {
   }
 }
 
-export async function getTrendingAnimeAction({ limit = 12 } = {}) {
+export async function getTrendingAnimeAction({ page = 1, limit = 12 } = {}) {
+  const safePage = Math.max(1, Number(page) || 1);
   const safeLimit = Math.min(Math.max(1, Number(limit) || 12), 25);
-  const cacheKey = `${TRENDING_ANIME_CACHE_PREFIX}:${safeLimit}`;
+  const cacheKey = `${TRENDING_ANIME_CACHE_PREFIX}:${safePage}:${safeLimit}`;
 
   try {
     const cached = await getCached(cacheKey);
@@ -272,7 +273,7 @@ export async function getTrendingAnimeAction({ limit = 12 } = {}) {
       };
     }
 
-    const data = await getTrendingAnime(safeLimit);
+    const data = await getTrendingAnime(safePage, safeLimit);
     const items = (data.results ?? [])
       .filter(isTvAnimeWithAnilistId)
       .map(mapAnime)
@@ -281,7 +282,7 @@ export async function getTrendingAnimeAction({ limit = 12 } = {}) {
     const payload = {
       items,
       pagination: {
-        page: 1,
+        page: safePage,
         pageSize: safeLimit,
         totalPages: data.pagination?.lastPage || 1,
         totalCount: data.pagination?.total ?? items.length,
