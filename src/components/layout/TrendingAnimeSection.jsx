@@ -17,7 +17,7 @@ export default async function TrendingAnimeSection({ limit = 12 } = {}) {
   }
 
   return (
-    <section className="mx-auto max-w-7xl px-4 pt-20 pb-16 mt-16">
+    <section className="mx-auto max-w-7xl px-4 pt-20 pb-16 mt-8">
       <div className="mb-8 flex items-end justify-between gap-4">
         <div>
           <h2 className="flex items-center gap-3 text-2xl font-display font-bold text-white md:text-3xl">
@@ -27,7 +27,7 @@ export default async function TrendingAnimeSection({ limit = 12 } = {}) {
         </div>
 
         <Link
-          href="/anime"
+          href="/trending"
           className="inline-flex shrink-0 items-center gap-2 rounded-lg px-4 py-2 text-sm bg-gradient-to-r from-orange-500 to-red-600 text-white font-bold hover:-translate-y-0.5 transition-all active:translate-y-0"
         >
           View All
