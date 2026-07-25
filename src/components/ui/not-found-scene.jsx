@@ -92,7 +92,7 @@ export default function NotFoundPage() {
         {/* Action buttons */}
         <div className="mt-10 flex flex-col gap-3 sm:flex-row">
           <Link
-            href="/"
+            href="/home"
             className="bg-orange-500 group inline-flex items-center justify-center gap-2 rounded-full px-8 py-3.5 text-sm font-bold text-black shadow-[0_16px_50px_-12px_rgba(255,90,0,0.75)] transition-all hover:scale-[1.03] hover:shadow-[0_20px_60px_-12px_rgba(255,90,0,0.9)]"
           >
             <Home className="h-4 w-4" />
@@ -100,10 +100,10 @@ export default function NotFoundPage() {
             <ArrowLeft className="h-4 w-4 rotate-0 transition-transform group-hover:-translate-x-0.5" />
           </Link>
 
-          <button className="inline-flex items-center justify-center gap-2 rounded-full border border-border/70 bg-card/60 px-8 py-3.5 text-sm font-semibold text-foreground backdrop-blur transition-colors hover:border-orange-500/50 hover:bg-card hover:text-orange-500">
+          <a href="/search" className="inline-flex items-center justify-center gap-2 rounded-full border border-border/70 bg-card/60 px-8 py-3.5 text-sm font-semibold text-foreground backdrop-blur transition-colors hover:border-orange-500/50 hover:bg-card hover:text-orange-500">
             <Search className="h-4 w-4" />
             Search Anime
-          </button>
+          </a>
         </div>
 
         {/* Decorative code tag */}

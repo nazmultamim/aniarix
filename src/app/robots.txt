@@ -36,6 +36,7 @@ Allow: /anime/
 Allow: /search
 Allow: /home
 Allow: /about
+Allow: /trending
 
 # ==========================================================
 # AI Crawlers

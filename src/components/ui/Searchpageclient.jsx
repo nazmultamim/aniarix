@@ -6,8 +6,9 @@ import AnimeCard from '@/components/layout/AnimeCard';
 import { searchAnimeAction, getTopAnimeAction } from '@/lib/action/Searchanimeaction';
 import {
   Search, X, ChevronLeft, ChevronRight, Loader2, Filter,
-  LayoutGrid, List as ListIcon, Star,
+  LayoutGrid, List as ListIcon, Star, ChevronDown, ChevronUp
 } from 'lucide-react';
+import { MdFilterListAlt } from "react-icons/md";
 
 const GENRES = [
   'Action', 'Adventure', 'Comedy', 'Drama', 'Fantasy', 'Horror', 'Isekai',
@@ -116,6 +117,7 @@ export default function SearchPageClient() {
   const [pendingFilters, setPendingFilters] = useState({ ...EMPTY_FILTERS, query: initialQ });
   const [appliedFilters, setAppliedFilters] = useState({ ...EMPTY_FILTERS, query: initialQ });
   const [sortValue, setSortValue] = useState(SORT_OPTIONS[0].value);
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
 
   const [page, setPage] = useState(1);
   const [items, setItems] = useState([]);
@@ -199,12 +201,13 @@ export default function SearchPageClient() {
           {/* ── Main column: filters + results ── */}
           <div ref={resultsRef} className="min-w-0">
             <h1 className="text-xl md:text-2xl font-display font-black text-white mb-6">
-              Advanced Anime Filter — Find Your Perfect Series
+              Find Your Perfect Anime
             </h1>
 
             <form onSubmit={handleApplyFilters} className="mb-8">
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 mb-3">
-                <div className="col-span-2 sm:col-span-3 lg:col-span-2 xl:col-span-2 relative">
+              {/* Search Bar + Mobile Toggle */}
+              <div className="flex items-center gap-2 mb-3">
+                <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/40 pointer-events-none" />
                   <input
                     value={pendingFilters.query}
@@ -223,6 +226,23 @@ export default function SearchPageClient() {
                   )}
                 </div>
 
+                {/* Toggle filters dropdown button (Mobile Only) */}
+                <button
+                  type="button"
+                  onClick={() => setShowMobileFilters((prev) => !prev)}
+                  className="md:hidden flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-sm text-white hover:bg-white/[0.08] transition-colors shrink-0"
+                >
+                  <MdFilterListAlt className="w-4 h-4 text-orange-400" />
+                  {showMobileFilters ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                </button>
+              </div>
+
+              {/* Filter Select Fields Container */}
+              <div
+                className={`${
+                  showMobileFilters ? 'grid' : 'hidden md:grid'
+                } grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 mb-3`}
+              >
                 <SelectField
                   value={pendingFilters.genre}
                   onChange={(v) => setPendingFilters((p) => ({ ...p, genre: v }))}
@@ -340,9 +360,6 @@ export default function SearchPageClient() {
 
             {!hasSearched && !loading && (
               <div className="flex flex-col items-center justify-center py-24 gap-4 text-center">
-                <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-orange-500/10 to-red-500/5 border border-orange-500/15 flex items-center justify-center">
-                  <Search className="w-9 h-9 text-orange-400/50" />
-                </div>
                 <p className="text-white font-bold text-xl">Find your next anime</p>
                 <p className="text-muted-foreground/50 text-sm max-w-xs">
                   Search by title or use the filters above, then hit Filter.
@@ -352,9 +369,7 @@ export default function SearchPageClient() {
 
             {hasSearched && !loading && !error && !hasResults && (
               <div className="flex flex-col items-center justify-center py-24 gap-4 text-center">
-                <div className="w-16 h-16 rounded-2xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center">
-                  <Search className="w-7 h-7 text-muted-foreground/30" />
-                </div>
+                
                 <p className="text-white font-bold text-lg">No results found</p>
                 <p className="text-muted-foreground/60 text-sm max-w-xs">Try different filters or a different title.</p>
                 <button

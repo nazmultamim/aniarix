@@ -89,7 +89,7 @@ export default function Page() {
       {/* Background overlay */}
       <div
         aria-hidden
-        className="drift-bg absolute inset-0 bg-cover bg-center opacity-25 [animation:drift_22s_ease-in-out_infinite]"
+        className="drift-bg absolute inset-0 bg-cover bg-center opacity-30 [animation:drift_22s_ease-in-out_infinite]"
         style={{ backgroundImage: "url(/anime-bg.webp)" }}
       />
       <div
@@ -124,7 +124,7 @@ export default function Page() {
           </Link>
 
           {/* Links — centered, desktop only */}
-          <nav className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-8 text-sm font-medium text-muted-foreground md:flex">
+          <nav className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-8 text-sm font-medium text-white font-semibold md:flex">
             {NAV_LINKS.map((link) => (
               <Link
                 key={link.href}
@@ -177,7 +177,7 @@ export default function Page() {
         <FadeUp index={0} className="mb-4 sm:mb-5">
           <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card/60 px-3 py-1.5 text-[10px] uppercase tracking-[0.15em] text-muted-foreground shadow-[0_0_20px_rgba(249,115,22,0.15)] backdrop-blur sm:px-4 sm:text-xs">
             <Sparkles className="h-3.5 w-3.5 shrink-0 text-primary" />
-            <span>Over 12,000 titles ready to stream</span>
+            <span>Over 5,000+ titles ready to stream</span>
           </div>
         </FadeUp>
 
@@ -189,7 +189,7 @@ export default function Page() {
 
         <FadeUp index={2} className="mt-3 sm:mt-4">
           <p className="max-w-lg px-2 text-sm text-muted-foreground sm:text-base">
-            Search any anime, jump straight into the episode. No fluff, no pop-ups — just the story.
+            Watch Anime Online in HD with AniArix, Search any anime, jump straight into the episode.
           </p>
         </FadeUp>
 
