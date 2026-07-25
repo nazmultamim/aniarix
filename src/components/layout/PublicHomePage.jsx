@@ -17,7 +17,7 @@ export default async function PublicHomePage() {
 
   return (
     <main className="min-h-[100dvh]  text-foreground">
-      <section className="mx-auto max-w-7xl px-4 pb-16 mt-20">
+      <section className="mx-auto max-w-7xl px-4 pb-16 ">
         <div className="mb-8 flex items-end justify-between gap-4">
           <div>
             <h2 className="flex items-center gap-3 text-2xl font-display font-bold text-white md:text-3xl">

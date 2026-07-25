@@ -8,6 +8,7 @@ const DEFAULT_PAGE_SIZE = 24;
 const HERO_SLIDES_CACHE_KEY = 'hero-anime-slides:v5';
 const SELECTED_ANIME_CACHE_PREFIX = 'selected-anime:v3';
 const SLUG_MAP_PREFIX = 'slug-to-anilist:v1';
+const TRENDING_ANIME_CACHE_PREFIX = 'trending-anime-list:v1';
 
 function isAlreadyReleasedAnime(item) {
   const status = String(item?.status || '').toUpperCase();
@@ -253,6 +254,59 @@ export async function getHeroAnimeSlidesAction() {
       err instanceof AniListApiError
         ? err.message
         : 'Failed to load featured anime.';
+    return { error: message, items: [] };
+  }
+}
+
+export async function getTrendingAnimeAction({ limit = 12 } = {}) {
+  const safeLimit = Math.min(Math.max(1, Number(limit) || 12), 25);
+  const cacheKey = `${TRENDING_ANIME_CACHE_PREFIX}:${safeLimit}`;
+
+  try {
+    const cached = await getCached(cacheKey);
+    if (cached) {
+      return {
+        success: true,
+        items: cached.items ?? [],
+        pagination: cached.pagination ?? null,
+      };
+    }
+
+    const data = await getTrendingAnime(safeLimit);
+    const items = (data.results ?? [])
+      .filter(isTvAnimeWithAnilistId)
+      .map(mapAnime)
+      .slice(0, safeLimit);
+
+    const payload = {
+      items,
+      pagination: {
+        page: 1,
+        pageSize: safeLimit,
+        totalPages: data.pagination?.lastPage || 1,
+        totalCount: data.pagination?.total ?? items.length,
+      },
+    };
+
+    await setCached(cacheKey, payload, CACHE_TTL.TWELVE_HOURS);
+
+    return { success: true, ...payload };
+  } catch (err) {
+    console.error('[getTrendingAnimeAction] failed:', err);
+
+    const cached = await getCached(cacheKey);
+    if (cached) {
+      return {
+        success: true,
+        items: cached.items ?? [],
+        pagination: cached.pagination ?? null,
+      };
+    }
+
+    const message =
+      err instanceof AniListApiError
+        ? err.message
+        : 'Failed to load trending anime.';
     return { error: message, items: [] };
   }
 }

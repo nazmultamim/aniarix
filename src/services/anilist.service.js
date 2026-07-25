@@ -370,12 +370,12 @@ export async function getSeasonalAnime(year, season, page = 1) {
   return data;
 }
 
-export async function getTrendingAnime() {
-  const key = 'trending-anime';
+export async function getTrendingAnime(limit = 20) {
+  const requestedPageSize = Math.min(Math.max(1, Number(limit) || 20), 25);
+  const key = requestedPageSize === 20 ? 'trending-anime' : `trending-anime:${requestedPageSize}`;
   const { data } = await getOrSetCache(
     key,
     async () => {
-      const requestedPageSize = 20;
       const result = await graphqlRequest(MEDIA_PAGE_QUERY, {
         ...buildPageVariables(1, getQueryPageSize(requestedPageSize), { orderBy: 'trending', sort: 'desc' }),
       });
