@@ -237,10 +237,12 @@ export default function AboutPage() {
         </Section>
 
         <Section title="Contact Us">
-          <p>Questions, suggestions, or feedback? We&apos;d love to hear from you.</p>
+          <p>Questions, suggestions, or feedback? We&apos;d love to hear from you. </p>
           <p>
             If you encounter an issue, have a feature request, or want to help improve AniArix,
-            please contact us through our Contact page.
+            please contact us through our <a href="/contact" className="text-orange-400 font-semibold hover:underline">
+              Contact page
+            </a>.
           </p>
         </Section>
 

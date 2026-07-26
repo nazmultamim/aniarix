@@ -231,14 +231,6 @@ export default function Navbar() {
               );
             })}
           </div>
-
-          {/* Sidebar footer */}
-          <div className="px-5 py-5 border-t border-white/5 shrink-0">
-            <div className="rounded-xl bg-gradient-to-r from-orange-500/10 to-red-500/10 border border-orange-500/20 p-4">
-              <p className="text-xs font-bold text-orange-400 mb-1">AniVault Premium</p>
-              <p className="text-xs text-muted-foreground leading-relaxed">Get unlimited downloads and ad-free streaming.</p>
-            </div>
-          </div>
         </div>
       </div>
     </>

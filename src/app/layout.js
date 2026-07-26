@@ -1,6 +1,7 @@
 import { Poppins } from "next/font/google";
 import Script from 'next/script';
 import "./globals.css";
+import { GoogleAnalytics } from "@next/third-parties/google";
 import { getCanonicalUrl, siteConfig } from "@/lib/site-config";
 // import AntiInspectGuard from "@/components/security/AntiInspectGuard";
 
@@ -99,6 +100,7 @@ export default function RootLayout({ children }) {
         {/* <AntiInspectGuard /> */}
         {children}
       </body>
+      <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID} />
     </html>
   );
 }

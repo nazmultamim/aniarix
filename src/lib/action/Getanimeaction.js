@@ -43,6 +43,16 @@ function getStableAnimeId(item) {
   return 'anime-unknown';
 }
 
+function formatHeroRating(score) {
+  const numericScore = typeof score === 'number' ? score : Number(score);
+  if (!Number.isFinite(numericScore)) {
+    return 'Top Pick';
+  }
+
+  const normalizedScore = numericScore > 10 ? numericScore / 10 : numericScore;
+  return `${normalizedScore.toFixed(1)}/10`;
+}
+
 // Maps the normalized AniList anime object into the flat shape the UI expects.
 function mapAnime(item) {
   return {
@@ -93,8 +103,7 @@ function mapAnime(item) {
 }
 
 function mapHeroSlide(item, label = 'Featured') {
-  const score = typeof item?.score === 'number' ? item.score : Number(item?.score);
-  const rating = Number.isFinite(score) ? score.toFixed(1) : '—';
+  const rating = formatHeroRating(item?.score);
 
   return {
     id: item.id ?? item.slug ?? item.title ?? null,
@@ -106,7 +115,7 @@ function mapHeroSlide(item, label = 'Featured') {
     type: item.format || 'Anime',
     genre: Array.isArray(item.genres) ? item.genres : [],
     synopsis: item.synopsis || 'No synopsis available.',
-    rating: rating === '—' ? 'Top Pick' : `${rating}/10`,
+    rating,
     release: item.year || item.status || 'Now',
     quality: item.episodes && Number(item.episodes) > 1 ? 'HD' : 'SD',
     episodes: item.episodes ?? null,

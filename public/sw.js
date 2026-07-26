@@ -1,12 +1,9 @@
-const CACHE_VERSION = 'aniarix-pwa-v1';
+const CACHE_VERSION = 'aniarix-pwa-v2';
 const SHELL_CACHE = `shell-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
 
 const PRECACHE_URLS = [
   '/',
-  '/home',
-  '/anime',
-  '/watch',
   '/site.webmanifest',
   '/favicon.ico',
   '/favicon-16x16.png',
@@ -82,7 +79,7 @@ self.addEventListener('fetch', (event) => {
   const sameOrigin = url.origin === self.location.origin;
 
   if (request.mode === 'navigate') {
-    event.respondWith(networkFirst(request, '/home'));
+    event.respondWith(networkFirst(request, '/'));
     return;
   }
 

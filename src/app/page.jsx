@@ -24,9 +24,11 @@ const gradientText = {
 };
 
 const NAV_LINKS = [
+  { href: "/Home", label: "Home" },
   { href: "/anime", label: "Anime" },
   { href: "/trending", label: "Trending" },
   { href: "/about", label: "About" },
+  { href: "/contact", label: "Contact" },
 ];
 
 const GENRES = ["Action", "Romance", "Shonen", "Slice of Life", "Mecha"];
@@ -227,7 +229,7 @@ export default function Page() {
 
         {/* Primary CTA */}
         <FadeUp index={4} className="mt-8 w-full sm:mt-10 sm:w-auto">
-          <Link
+          <a
             href="/home"
             className="group relative inline-flex w-full items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-bold uppercase tracking-wider text-white shadow-[0_0_35px_rgba(255,100,0,0.35)] transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_50px_rgba(255,100,0,0.5)] active:scale-95 sm:w-auto sm:gap-3 sm:px-10 sm:py-4 sm:text-lg"
             style={{ background: gradientBrand }}
@@ -237,7 +239,7 @@ export default function Page() {
             <span className="grid h-6 w-6 place-items-center rounded-full bg-white/20 transition-transform duration-300 group-hover:translate-x-1 sm:h-8 sm:w-8">
               <ArrowRight className="h-3.5 w-3.5 text-white sm:h-5 sm:w-5" />
             </span>
-          </Link>
+          </a>
         </FadeUp>
 
         {/* Genre chips */}
