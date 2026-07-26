@@ -7,13 +7,14 @@ export const siteConfig = {
 
   keywords: [
     'AniArix',
+    'aniarix.site',
     'anime streaming',
     'watch anime online',
     'anime online',
     'watch anime free',
     'Hianime',
     'aniewave',
-    'anime straming platform',
+    'aniarix anime straming platform',
     'anime episodes',
     'anime series',
     'anime movies',
