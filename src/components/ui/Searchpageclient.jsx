@@ -5,10 +5,11 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import AnimeCard from '@/components/layout/AnimeCard';
 import { searchAnimeAction, getTopAnimeAction } from '@/lib/action/Searchanimeaction';
 import {
-  Search, X, ChevronLeft, ChevronRight, Loader2, Filter,
+  Search, X, ChevronLeft, ChevronRight, Loader2, Filter, SlidersVertical,
   LayoutGrid, List as ListIcon, Star, ChevronDown, ChevronUp
 } from 'lucide-react';
-import { MdFilterListAlt } from "react-icons/md";
+
+
 
 const GENRES = [
   'Action', 'Adventure', 'Comedy', 'Drama', 'Fantasy', 'Horror', 'Isekai',
@@ -230,18 +231,23 @@ export default function SearchPageClient() {
                 <button
                   type="button"
                   onClick={() => setShowMobileFilters((prev) => !prev)}
+                  aria-expanded={showMobileFilters}
+                  aria-controls="mobile-filter-options"
                   className="md:hidden flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-sm text-white hover:bg-white/[0.08] transition-colors shrink-0"
                 >
-                  <MdFilterListAlt className="w-4 h-4 text-orange-400" />
-                  {showMobileFilters ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  <SlidersVertical className="w-4 h-4 text-orange-400" />
+                  
                 </button>
               </div>
 
               {/* Filter Select Fields Container */}
               <div
-                className={`${
-                  showMobileFilters ? 'grid' : 'hidden md:grid'
-                } grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 mb-3`}
+                id="mobile-filter-options"
+                className={`grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 mb-3 overflow-hidden transition-[max-height,opacity,transform] duration-300 ease-out ${
+                  showMobileFilters
+                    ? 'max-h-[32rem] opacity-100 translate-y-0 pointer-events-auto'
+                    : 'max-h-0 opacity-0 -translate-y-2 pointer-events-none'
+                } md:max-h-none md:opacity-100 md:translate-y-0 md:pointer-events-auto`}
               >
                 <SelectField
                   value={pendingFilters.genre}

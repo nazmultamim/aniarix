@@ -8,7 +8,7 @@ export { AniListApiError } from '@/graphql/client';
 const DEFAULT_PAGE_SIZE = 20;
 
 function getQueryPageSize(requestedSize) {
-  return Math.min(100, Math.max(60, Number(requestedSize) || DEFAULT_PAGE_SIZE));
+  return Math.min(25, Math.max(1, Number(requestedSize) || DEFAULT_PAGE_SIZE));
 }
 
 function stripHtml(value) {
@@ -62,7 +62,7 @@ function mapSeason(season) {
 
 function mapStatus(status) {
   if (!status) return null;
-  const normalized = String(status).toLowerCase();
+  const normalized = String(status).trim().toLowerCase();
   const statuses = {
     airing: 'RELEASING',
     release: 'RELEASING',
@@ -73,6 +73,31 @@ function mapStatus(status) {
     upcoming: 'NOT_YET_RELEASED',
   };
   return statuses[normalized] || null;
+}
+
+function normalizeGenre(genre) {
+  if (!genre) return null;
+
+  const normalized = String(genre).trim().toLowerCase();
+  const genres = {
+    action: 'Action',
+    adventure: 'Adventure',
+    comedy: 'Comedy',
+    drama: 'Drama',
+    fantasy: 'Fantasy',
+    horror: 'Horror',
+    isekai: 'Isekai',
+    mecha: 'Mecha',
+    mystery: 'Mystery',
+    romance: 'Romance',
+    'sci-fi': 'Sci-Fi',
+    'slice of life': 'Slice of Life',
+    sports: 'Sports',
+    supernatural: 'Supernatural',
+    thriller: 'Thriller',
+  };
+
+  return genres[normalized] || String(genre).trim();
 }
 
 function isReleasedMedia(item) {
@@ -217,20 +242,22 @@ function buildPageVariables(page, perPage, filters = {}) {
     perPage: Math.min(Math.max(Number(perPage) || DEFAULT_PAGE_SIZE, 1), 25),
   };
 
-  const search = filters.query?.trim() || filters.search?.trim() || filters.title?.trim() || '';
+  const search = String(filters.query || filters.search || filters.title || '').trim();
   if (search) variables.search = search;
 
-  const genre = filters.genre || filters.genres?.[0] || null;
+  const genre = normalizeGenre(filters.genre || filters.genres?.[0] || null);
   if (genre) variables.genres = [genre];
 
-  const explicitFormat = filters.format || filters.type || filters.mediaFormat || null;
+  const explicitFormat = String(filters.format || filters.type || filters.mediaFormat || '').trim() || null;
   const format = mapFormat(explicitFormat);
 
   if (format) {
     variables.format = format;
-  } else if (!Object.prototype.hasOwnProperty.call(filters, 'format') && !Object.prototype.hasOwnProperty.call(filters, 'type') && !Object.prototype.hasOwnProperty.call(filters, 'mediaFormat')) {
+  } else if (!explicitFormat) {
+    // Only default to TV if no format was specified at all
     variables.format = 'TV';
   }
+  // If explicitFormat was set but mapFormat returned null (unknown format), don't filter by format
 
   const status = mapStatus(filters.status || null);
   if (status) {
@@ -256,6 +283,14 @@ function buildPageVariables(page, perPage, filters = {}) {
 
   if (Object.prototype.hasOwnProperty.call(filters, 'adult')) {
     variables.isAdult = Boolean(filters.adult);
+  }
+
+  // Map rating filter to isAdult since AniList doesn't have a direct rating filter
+  const rating = String(filters.rating || '').trim().toLowerCase() || null;
+  if (rating === 'rx') {
+    variables.isAdult = true;
+  } else if (rating && rating !== '') {
+    variables.isAdult = false;
   }
 
   const sortValue = mapSort(filters.orderBy || filters.sortBy || 'popularity', filters.sort || 'desc');

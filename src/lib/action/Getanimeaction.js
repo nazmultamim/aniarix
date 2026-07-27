@@ -185,7 +185,7 @@ export async function getAnimeListAction({ page = 1, pageSize = DEFAULT_PAGE_SIZ
         page: safePage,
         pageSize: limit,
         totalPages: data.pagination?.lastPage || 1,
-        totalCount: data.pagination?.total ?? items.length,
+        totalCount: items.length,
       },
     };
   } catch (err) {
@@ -209,7 +209,7 @@ export async function getAnimeListAction({ page = 1, pageSize = DEFAULT_PAGE_SIZ
           page: safePage,
           pageSize: limit,
           totalPages: fallback.pagination?.lastPage || 1,
-          totalCount: fallback.pagination?.total ?? items.length,
+          totalCount: items.length,
         },
       };
     } catch (fallbackErr) {
@@ -226,7 +226,7 @@ export async function getAnimeListAction({ page = 1, pageSize = DEFAULT_PAGE_SIZ
               page: safePage,
               pageSize: limit,
               totalPages: cached.pagination?.lastPage || 1,
-              totalCount: cached.pagination?.total ?? items.length,
+              totalCount: items.length,
             },
           };
         }
@@ -294,7 +294,7 @@ export async function getTrendingAnimeAction({ page = 1, limit = 12 } = {}) {
         page: safePage,
         pageSize: safeLimit,
         totalPages: data.pagination?.lastPage || 1,
-        totalCount: data.pagination?.total ?? items.length,
+        totalCount: items.length,
       },
     };
 

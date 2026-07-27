@@ -53,7 +53,7 @@ export async function searchAnimeAction(filters = {}, page = 1, pageSize = DEFAU
           page: safePage,
           pageSize,
           totalPages: data.pagination?.lastPage || 1,
-          totalCount: data.pagination?.total ?? items.length,
+          totalCount: items.length,
         },
       };
     } catch (err) {
