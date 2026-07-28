@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { Star, Tv } from 'lucide-react';
 import { slugify } from '@/lib/slugify';
+import { formatAnimeScore } from '@/lib/anime-score';
 
 function toDisplayLabel(value) {
   if (typeof value === 'string') return value;
@@ -57,7 +58,7 @@ export default function AnimeCard({ anime }) {
         <div className="absolute top-2 right-2 z-10 flex items-center gap-1 rounded-md border border-white/10 bg-black/80 backdrop-blur-md px-2 py-1 shadow-sm">
           <Star className="h-3 w-3 sm:h-3.5 sm:w-3.5 fill-orange-500 text-orange-500" />
           <span className="text-[10px] sm:text-xs font-bold text-white">
-            {anime.score}
+            {formatAnimeScore(anime.score) ?? '—'}
           </span>
         </div>
       )}

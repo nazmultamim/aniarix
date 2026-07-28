@@ -1,6 +1,7 @@
 'use server';
 
 import { searchAnimeAdvanced, getTopAnime, AniListApiError } from '@/services/anilist.service';
+import { normalizeAnimeScore } from '@/lib/anime-score';
 
 const DEFAULT_PAGE_SIZE = 20;
 
@@ -22,7 +23,7 @@ function mapAnime(item) {
     title: item.title || item.title_english || item.title_native || null,
     title_english: item.title_english || item.title || null,
     poster_image: item.poster || null,
-    score: item.score ?? null,
+    score: normalizeAnimeScore(item.score ?? null),
     type: item.format || null,
     genres: item.genres ?? [],
     synopsis: item.description || null,

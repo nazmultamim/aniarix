@@ -2,6 +2,7 @@ import { getOrSetCache, CACHE_TTL } from './Cache.service';
 import { graphqlRequest, AniListApiError } from '@/graphql/client';
 import { MEDIA_DETAIL_QUERY, MEDIA_PAGE_QUERY } from '@/graphql/queries';
 import { slugify } from '@/lib/slugify';
+import { normalizeAnimeScore } from '@/lib/anime-score';
 
 export { AniListApiError } from '@/graphql/client';
 
@@ -171,9 +172,9 @@ function normalizeMedia(item) {
     genres: Array.isArray(item.genres) ? item.genres : [],
     episodes: item.episodes ?? null,
     duration: item.duration ?? null,
-    score: item.averageScore ?? item.meanScore ?? null,
-    average_score: item.averageScore ?? null,
-    mean_score: item.meanScore ?? null,
+    score: normalizeAnimeScore(item.averageScore ?? item.meanScore ?? null),
+    average_score: normalizeAnimeScore(item.averageScore ?? null),
+    mean_score: normalizeAnimeScore(item.meanScore ?? null),
     popularity: item.popularity ?? null,
     favorites: item.favourites ?? null,
     season: item.season || null,
