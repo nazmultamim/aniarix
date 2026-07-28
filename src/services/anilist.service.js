@@ -128,6 +128,7 @@ function mapSort(orderBy, sort = 'desc') {
     score: `SCORE${direction}`,
     start_date: `START_DATE${direction}`,
     startdate: `START_DATE${direction}`,
+    id: `ID${direction}`,
     title: 'TITLE_ROMAJI',
     trending: 'TRENDING_DESC',
     search: 'SEARCH_MATCH',
@@ -435,19 +436,21 @@ export async function getTrendingAnime(page = 1, limit = 20) {
   return data;
 }
 
-export async function getRecentAnime(page = 1, limit = 24) {
-  console.log('[anilist.service] getRecentAnime called', { page, limit });
+export async function getReleasedAnime(page = 1, limit = 24) {
+  const safePage = Math.max(1, Number(page) || 1);
   const safeLimit = Math.min(Math.max(1, Number(limit) || 24), 25);
-  const key = `recent-anime:${page}:${safeLimit}`;
+  const key = `released-anime:v3:${safePage}:${safeLimit}`;
+
   const { data } = await getOrSetCache(
     key,
     async () => {
-      const variables = buildPageVariables(page, getQueryPageSize(safeLimit), { orderBy: 'start_date', sort: 'desc' });
-      console.log('[anilist.service] getRecentAnime variables', variables);
-      const result = await graphqlRequest(MEDIA_PAGE_QUERY, variables);
+      const result = await graphqlRequest(MEDIA_PAGE_QUERY, {
+        ...buildPageVariables(safePage, getQueryPageSize(safeLimit), {
+          orderBy: 'id',
+          sort: 'desc',
+        }),
+      });
       const pageResult = result?.Page;
-      console.log('[anilist.service] getRecentAnime raw media count', (pageResult?.media || []).length);
-      console.log('[anilist.service] getRecentAnime raw sample', (pageResult?.media || []).slice(0, 5).map((item) => ({ title: item?.title?.romaji || item?.title?.english, status: item?.status, format: item?.format, id: item?.id })));
       const items = (pageResult?.media || [])
         .filter(isReleasedMedia)
         .map(normalizeMedia)
@@ -455,7 +458,7 @@ export async function getRecentAnime(page = 1, limit = 24) {
         .slice(0, safeLimit);
       return {
         results: items,
-        pagination: normalizePagination(pageResult?.pageInfo, page, safeLimit),
+        pagination: normalizePagination(pageResult?.pageInfo, safePage, safeLimit),
       };
     },
     CACHE_TTL.TWELVE_HOURS

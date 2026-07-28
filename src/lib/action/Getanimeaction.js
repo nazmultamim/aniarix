@@ -1,6 +1,6 @@
 'use server';
 
-import { getAnimeDetails, getRecentAnime, getTopAnime, getTrendingAnime, AniListApiError } from '@/services/anilist.service';
+import { getAnimeDetails, getReleasedAnime, getTopAnime, getTrendingAnime, AniListApiError } from '@/services/anilist.service';
 import { CACHE_TTL, getCached, setCached } from '@/services/Cache.service';
 import { slugify } from '@/lib/slugify';
 
@@ -20,10 +20,6 @@ function isBrowsableAnime(item) {
   return status !== 'NOT_YET_RELEASED' && status !== 'CANCELLED' && status !== 'HIATUS';
 }
 
-function hasHeroArtwork(item) {
-  return Boolean(item?.poster);
-}
-
 function isTvAnimeWithAnilistId(item) {
   if (!item) return false;
 
@@ -32,6 +28,10 @@ function isTvAnimeWithAnilistId(item) {
   const hasAnilistId = anilistId != null && String(anilistId).trim() !== '';
 
   return hasAnilistId && isBrowsableAnime(item) && format === 'TV';
+}
+
+function hasHeroArtwork(item) {
+  return Boolean(item?.poster);
 }
 
 function getStableAnimeId(item) {
@@ -160,14 +160,14 @@ async function fetchHeroAnimeSlides() {
 }
 
 /**
- * Paginated "recent anime" browse list, sourced from AniList (cached 12h in
+ * Paginated released-anime browse list, sourced from AniList (cached 12h in
  * Redis via anilist.service.js) — no Supabase involved, per the new
  * architecture.
  */
 export async function getAnimeListAction({ page = 1, pageSize = DEFAULT_PAGE_SIZE } = {}) {
   const safePage = Math.max(1, Number(page) || 1);
   const limit = Math.min(Math.max(1, Number(pageSize) || DEFAULT_PAGE_SIZE), 25);
-  const cacheKey = `recent-anime:${safePage}:${limit}`;
+  const cacheKey = `released-anime:v3:${safePage}:${limit}`;
   const fallbackKeys = [
     cacheKey,
     safePage === 1 ? 'top-anime' : `top-anime:${safePage}`,
@@ -175,8 +175,8 @@ export async function getAnimeListAction({ page = 1, pageSize = DEFAULT_PAGE_SIZ
   ];
 
   try {
-    const data = await getRecentAnime(safePage, limit);
-    const items = (data.results ?? []).filter(isTvAnimeWithAnilistId).map(mapAnime);
+    const data = await getReleasedAnime(safePage, limit);
+    const items = (data.results ?? []).map(mapAnime).filter(Boolean);
 
     return {
       success: true,
@@ -191,7 +191,7 @@ export async function getAnimeListAction({ page = 1, pageSize = DEFAULT_PAGE_SIZ
   } catch (err) {
     try {
       const fallback = await getTopAnime(safePage);
-      const items = (fallback.results ?? []).filter(isTvAnimeWithAnilistId).map(mapAnime);
+      const items = (fallback.results ?? []).map(mapAnime);
 
       await setCached(
         cacheKey,
@@ -218,7 +218,7 @@ export async function getAnimeListAction({ page = 1, pageSize = DEFAULT_PAGE_SIZ
       for (const key of fallbackKeys) {
         const cached = await getCached(key);
         if (cached?.results?.length) {
-          const items = (cached.results ?? []).filter(isTvAnimeWithAnilistId).map(mapAnime);
+          const items = (cached.results ?? []).map(mapAnime);
           return {
             success: true,
             items,
@@ -238,6 +238,49 @@ export async function getAnimeListAction({ page = 1, pageSize = DEFAULT_PAGE_SIZ
           : 'Failed to load anime right now. Please try again.';
       return { error: message };
     }
+  }
+}
+
+export async function getReleasedAnimeAction({ page = 1, limit = 12 } = {}) {
+  const safePage = Math.max(1, Number(page) || 1);
+  const safeLimit = Math.min(Math.max(1, Number(limit) || 12), 25);
+  const cacheKey = `released-anime:v3:${safePage}:${safeLimit}`;
+
+  try {
+    const data = await getReleasedAnime(safePage, safeLimit);
+    const items = (data.results ?? []).map(mapAnime).filter(Boolean);
+
+    return {
+      success: true,
+      items,
+      pagination: {
+        page: safePage,
+        pageSize: safeLimit,
+        totalPages: data.pagination?.lastPage || 1,
+        totalCount: items.length,
+      },
+    };
+  } catch (err) {
+    const cached = await getCached(cacheKey);
+    if (cached?.results?.length) {
+      const items = (cached.results ?? []).map(mapAnime).filter(Boolean);
+      return {
+        success: true,
+        items,
+        pagination: {
+          page: safePage,
+          pageSize: safeLimit,
+          totalPages: cached.pagination?.lastPage || 1,
+          totalCount: items.length,
+        },
+      };
+    }
+
+    const message =
+      err instanceof AniListApiError
+        ? err.message
+        : 'Failed to load released anime right now. Please try again.';
+    return { error: message, items: [] };
   }
 }
 
