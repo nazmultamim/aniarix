@@ -99,6 +99,10 @@ function mapAnime(item) {
     trailer: item.trailer ?? null,
     banner: item.banner ?? null,
     banner_image: item.banner ?? null,
+    // Only populated when this came from getAnimeDetails() — list-view
+    // fetches (top/trending/released) never request relations, so this
+    // will just be an empty array for those.
+    relations: item.relations ?? [],
   };
 }
 
@@ -413,6 +417,11 @@ export async function storeSlugMapping(slug, anilistId) {
 export async function getAnimeIdBySlugAction(slug) {
   if (!slug) return { anilistId: null };
 
+  const normalizedSlug = String(slug).trim();
+  if (/^\d+$/.test(normalizedSlug)) {
+    return { anilistId: normalizedSlug };
+  }
+
   const cached = await getCached(`${SLUG_MAP_PREFIX}:${slug}`);
   if (cached?.anilistId) {
     return { anilistId: String(cached.anilistId) };
@@ -430,7 +439,7 @@ export async function getAnimeIdBySlugAction(slug) {
       }
     `;
 
-    const searchTitle = slug.replace(/-/g, ' ');
+    const searchTitle = normalizedSlug.replace(/-/g, ' ');
     const res = await fetch('https://graphql.anilist.co', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },

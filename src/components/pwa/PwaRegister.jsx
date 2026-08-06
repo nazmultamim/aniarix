@@ -6,6 +6,24 @@ export default function PwaRegister() {
   useEffect(() => {
     if (!('serviceWorker' in navigator)) return undefined;
 
+    if (process.env.NODE_ENV !== 'production') {
+      // Dev builds should not keep an old service worker around, because it can
+      // serve stale client chunks and break hot-reloaded modules.
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        registrations.forEach((registration) => registration.unregister());
+      });
+
+      if ('caches' in window) {
+        caches.keys().then((keys) => {
+          keys
+            .filter((key) => key.startsWith('shell-') || key.startsWith('runtime-'))
+            .forEach((key) => caches.delete(key));
+        });
+      }
+
+      return undefined;
+    }
+
     let cancelled = false;
 
     const register = async () => {

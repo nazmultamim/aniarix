@@ -138,6 +138,33 @@ function mapSort(orderBy, sort = 'desc') {
   return sorts[normalizedOrder] || `POPULARITY${direction}`;
 }
 
+// Maps AniList's relations edges into a flat array the UI can render
+// directly. Only ANIME-type nodes are kept — relations can also point to
+// MANGA/NOVEL/etc. (e.g. the source material an anime was adapted from),
+// which aren't watchable and don't belong in a "related anime" list.
+function normalizeRelations(relationsConnection) {
+  const edges = relationsConnection?.edges;
+  if (!Array.isArray(edges)) return [];
+
+  return edges
+    .filter((edge) => edge?.node?.type === 'ANIME')
+    .map((edge) => {
+      const node = edge.node;
+      const title = node.title || {};
+      return {
+        relation_type: edge.relationType || null,
+        anilist_id: node.id ?? null,
+        title: title.english || title.romaji || title.native || null,
+        poster: node.coverImage?.extraLarge || node.coverImage?.large || null,
+        format: node.format || null,
+        status: node.status || null,
+        episodes: node.episodes ?? null,
+        year: node.startDate?.year ?? null,
+      };
+    })
+    .filter((rel) => rel.anilist_id && rel.title);
+}
+
 function normalizeMedia(item) {
   if (!item) return null;
   const title = item.title || {};
@@ -215,6 +242,9 @@ function normalizeMedia(item) {
       : null,
     format: item.format || null,
     site_url: item.siteUrl || null,
+    // Only present when this came from MEDIA_DETAIL_QUERY (relations is
+    // not requested by MEDIA_PAGE_QUERY / list views) — see queries.js.
+    relations: normalizeRelations(item.relations),
   };
 }
 
@@ -309,7 +339,7 @@ export async function getAnimeDetails(anilistId) {
     throw new AniListApiError('anilistId must be a valid number', 400);
   }
 
-  const key = `anime:v3:${normalizedAnilistId}`;
+  const key = `anime:v4:${normalizedAnilistId}`;
   const { data } = await getOrSetCache(
     key,
     async () => {

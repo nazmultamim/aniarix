@@ -1,6 +1,8 @@
 import { Suspense } from 'react';
-import { Star, StarHalf } from 'lucide-react';
+import { MdLiveTv } from "react-icons/md";
 import WatchPlayer from '@/components/layout/WatchPlayer';
+import AnimeSynopsis from '@/components/ui/AnimeSynopsis';
+import RelatedAnime from '@/components/layout/Relatedanime';
 import { getAnimeDetailAction, getAnimeIdBySlugAction, getSelectedAnimeCacheAction } from '@/lib/action/Getanimeaction';
 import { getAnimeOgPayload } from '@/lib/og/anime';
 import { getCanonicalUrl, siteConfig } from '@/lib/site-config';
@@ -12,14 +14,20 @@ function getFirst(value) {
   return Array.isArray(value) ? value[0] : value;
 }
 
+function parseEpisodeParam(value) {
+  const raw = String(getFirst(value) || '1').trim();
+  const normalized = raw.replace(/^ep-/i, '');
+  return parseInt(normalized, 10) || 1;
+}
+
 export async function generateMetadata({ params }) {
   const resolvedParams = await params;
   const slug = getFirst(resolvedParams?.slug) || null;
-  const episode = parseInt(String(getFirst(resolvedParams?.ep) || '1'), 10) || 1;
+  const episode = parseEpisodeParam(resolvedParams?.ep);
 
   if (!slug) {
     return {
-      title: 'Now Watching | AniArix',
+      title: 'Now Watching |',
       description: siteConfig.description,
       alternates: { canonical: getCanonicalUrl('/watch') },
     };
@@ -29,7 +37,7 @@ export async function generateMetadata({ params }) {
 
   if (!anilistId) {
     return {
-      title: 'Now Watching | AniArix',
+      title: 'Now Watching |',
       description: siteConfig.description,
       alternates: { canonical: getCanonicalUrl(`/watch/${slug}/ep-${episode}`) },
     };
@@ -43,20 +51,20 @@ export async function generateMetadata({ params }) {
   const canonicalPath = `/watch/${slug}/ep-${episode}`;
 
   return {
-    title: `${displayTitle} | AniArix`,
+    title: `${displayTitle}`,
     description: `${displayTitle}${japaneseTitle} on AniArix.`,
     alternates: {
       canonical: getCanonicalUrl(canonicalPath),
     },
     openGraph: {
-      title: `${displayTitle} | AniArix`,
+      title: `${displayTitle}`,
       description: `${displayTitle}${japaneseTitle} on AniArix.`,
       url: getCanonicalUrl(canonicalPath),
       images: socialImages,
     },
     twitter: {
       card: 'summary_large_image',
-      title: `${displayTitle} | AniArix`,
+      title: `${displayTitle}`,
       description: `${displayTitle}${japaneseTitle} on AniArix.`,
       images: socialImages,
     },
@@ -72,77 +80,12 @@ export async function generateMetadata({ params }) {
   };
 }
 
-function formatDateLabel(value) {
-  if (!value) return null;
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return String(value);
-  }
-
-  return new Intl.DateTimeFormat('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  }).format(date);
-}
-
-function formatSeasonLabel(season, seasonYear) {
-  if (!season && !seasonYear) return null;
-  const readableSeason = season
-    ? String(season).toLowerCase().replace(/^./, (char) => char.toUpperCase())
-    : null;
-  return [readableSeason, seasonYear].filter(Boolean).join(' ');
-}
-
-function formatCountry(value) {
-  if (!value) return null;
-  const normalized = String(value).toUpperCase();
-  const countries = {
-    JP: 'Japan',
-    US: 'United States',
-    KR: 'South Korea',
-    CN: 'China',
-  };
-  return countries[normalized] || normalized;
-}
-
-function joinNames(values) {
-  if (!Array.isArray(values) || values.length === 0) return null;
-  return values.filter(Boolean).join(', ');
-}
-
-function StarRating({ rawScore }) {
-  if (rawScore == null || Number.isNaN(rawScore)) return null;
-  const ratingOutOf5 = Math.max(0, Math.min(5, rawScore / 20));
-  const rounded = Math.round(ratingOutOf5 * 2) / 2;
-  const fullStars = Math.floor(rounded);
-  const hasHalf = rounded - fullStars === 0.5;
-  const emptyStars = 5 - fullStars - (hasHalf ? 1 : 0);
-
-  return (
-    <div className="flex items-center gap-0.5">
-      {Array.from({ length: fullStars }).map((_, i) => (
-        <Star key={`full-${i}`} className="h-4 w-4 fill-amber-400 text-amber-400" />
-      ))}
-      {hasHalf && <StarHalf className="h-4 w-4 fill-amber-400 text-amber-400" />}
-      {Array.from({ length: emptyStars }).map((_, i) => (
-        <Star key={`empty-${i}`} className="h-4 w-4 text-white/15" />
-      ))}
-    </div>
-  );
-}
-
-function MetaRow({ label, value, accent }) {
+function MetaLine({ label, value }) {
   if (!value) return null;
   return (
-    <li className="flex items-start gap-2.5 py-1.5">
-      <span className="mt-[6px] h-[9px] w-[9px] shrink-0 rounded-[2px] bg-orange-400" />
-      <p className="text-[13.5px] leading-snug">
-        <span className="font-semibold text-orange-400">{label}: </span>
-        <span className={accent ? 'text-[#ffa353] cursor-pointer hover:text-[#ff9e3d] transition-colors' : 'text-[#c4c4ce]'}>
-          {value}
-        </span>
-      </p>
+    <li className="py-1 text-[12.5px] sm:text-[13px] leading-relaxed">
+      <span className="font-semibold text-white">{label}: </span>
+      <span className="text-[#9a9aa2]">{value}</span>
     </li>
   );
 }
@@ -150,7 +93,7 @@ function MetaRow({ label, value, accent }) {
 export default async function WatchPage({ params }) {
   const resolvedParams = await params;
   const slug = getFirst(resolvedParams?.slug) || null;
-  const episode = parseInt(String(getFirst(resolvedParams?.ep) || '1'), 10) || 1;
+  const episode = parseEpisodeParam(resolvedParams?.ep);
 
   let anilistId = null;
   let anime = null;
@@ -171,42 +114,34 @@ export default async function WatchPage({ params }) {
   const displayTitle = anime?.title_english || anime?.title || 'Now Watching';
   const posterUrl = anime?.poster_image || 'https://placehold.co/600x900/111111/f97316?text=No+Image';
   const genres = anime?.genres || [];
-  const tags = Array.isArray(anime?.tags) ? anime.tags.slice(0, 30) : [];
-  const titleNative = anime?.title_japanese || anime?.title_native || null;
-  const premiereLabel = formatSeasonLabel(anime?.season, anime?.season_year);
-  const airedFrom = formatDateLabel(anime?.aired_from);
-  const airedTo = formatDateLabel(anime?.aired_to);
-  const airedRange = airedFrom ? `${airedFrom} to ${airedTo || '?'}` : premiereLabel || '—';
-
-  const rawScore = anime?.score != null ? Number(anime.score) : null;
-  const scoreLabel = rawScore !== null ? (Number.isInteger(rawScore) ? rawScore : rawScore.toFixed(1)) : 'N/A';
-  const studiosLabel = joinNames(anime?.main_studios?.length ? anime.main_studios : anime?.studio_names) || 'N/A';
-  const producersLabel = joinNames(anime?.producers) || 'N/A';
-  const popularityLabel = anime?.popularity != null ? Number(anime.popularity).toLocaleString() : '0';
-  const synopsis = anime?.synopsis || 'No synopsis available for this title.';
   const episodeCount = anime?.episodes || 1;
+  const synopsis = anime?.synopsis || 'No synopsis available for this title.';
 
-  const metaRowsLeft = [
-    { label: 'Status', value: anime?.status || 'N/A' },
-    { label: 'Premiered', value: premiereLabel || 'N/A' },
-    { label: 'Aired', value: airedRange },
-    { label: 'Episodes', value: `${episodeCount}` },
-    { label: 'Broadcast', value: anime?.broadcast || 'N/A' },
-  ];
+  const typeLabel = anime?.type || 'TV';
+  const statusLabel = anime?.status ? String(anime.status).toUpperCase() : 'N/A';
+  const isReleasing = statusLabel === 'RELEASING';
+  const yearLabel =
+    anime?.season_year ||
+    (anime?.aired_from ? new Date(anime.aired_from).getFullYear() : null) ||
+    'N/A';
+  const seasonLabel = anime?.season ? String(anime.season).toUpperCase() : 'N/A';
+  const countryLabel = anime?.country_of_origin ? String(anime.country_of_origin).toUpperCase() : 'N/A';
+  const durationLabel = anime?.duration ? `${anime.duration}` : 'N/A';
+  const popularityLabel = anime?.popularity != null ? `${Number(anime.popularity).toLocaleString()}` : '0';
 
-  const metaRowsRight = [
-    { label: 'Studio', value: studiosLabel, accent: true },
-    { label: 'Producers', value: producersLabel !== 'N/A' ? producersLabel : 'Unknown', accent: true },
-    { label: 'Duration', value: anime?.duration ? `${anime.duration} min. per ep.` : 'N/A' },
-    { label: 'Type', value: anime?.type || 'TV' },
-    { label: 'Country', value: formatCountry(anime?.country_of_origin) || 'N/A' },
+  const metaRows = [
+    { label: 'Type', value: 'ANIME' },
+    { label: 'Season', value: seasonLabel },
+    { label: 'Country', value: countryLabel },
+    { label: 'Duration', value: durationLabel },
+    { label: 'Popularity', value: popularityLabel },
   ];
 
   return (
     <main className="min-h-[100dvh] bg-[#09090b] text-[#d4d4d8]">
-      <div className="mx-auto max-w-[1600px] px-4 py-6 md:px-6 md:py-8">
+      <div className="mx-auto max-w-[1600px]">
         <div className="grid gap-8">
-          <section className="overflow-hidden rounded-2xl border border-white/[0.05] bg-[#0f0f13] shadow-2xl md:rounded-[28px]">
+          <section className="overflow-hidden">
             <div className="relative p-2 md:p-6">
               <div className="relative">
                 {anilistId ? (
@@ -216,6 +151,7 @@ export default async function WatchPage({ params }) {
                     }
                   >
                     <WatchPlayer
+                      key={`${anilistId}-${episode}`}
                       initialAnime={anime}
                       initialAnimeId={anilistId}
                       initialEpisode={episode}
@@ -235,176 +171,77 @@ export default async function WatchPage({ params }) {
             </div>
           </section>
 
-          <section className="rounded-2xl border border-white/[0.06] bg-[#0f0f13] p-4 font-display shadow-xl md:rounded-[28px] sm:p-6 md:p-8">
-            <div className="md:hidden">
-              <div style={{ width: '120px', maxWidth: '120px' }} className="mx-auto">
-                <div
-                  style={{ width: '120px', maxWidth: '120px' }}
-                  className="relative overflow-hidden rounded-xl ring-1 ring-white/[0.08] shadow-[0_16px_40px_-12px_rgba(0,0,0,0.85)]"
-                >
+          {/* Related anime — sequels, prequels, side stories */}
+          <RelatedAnime relations={anime?.relations} />
+
+          {/* Anime Details section */}
+          <section className="rounded-2xl border border-white/[0.06] bg-[#0f0f13] p-4 font-display shadow-xl sm:p-6 md:rounded-[28px] md:p-8">
+            <div className="flex gap-4 sm:gap-6 md:gap-8">
+              <div className="w-[130px] shrink-0 sm:w-[150px] md:w-[170px]">
+                <div className="relative overflow-hidden rounded-xl ring-1 ring-white/[0.08] shadow-[0_16px_40px_-12px_rgba(0,0,0,0.85)]">
                   <img
                     src={posterUrl}
                     alt={displayTitle}
-                    style={{ width: '120px', maxWidth: '120px', height: 'auto', aspectRatio: '2 / 3' }}
-                    className="object-cover"
+                    style={{ aspectRatio: '2 / 3' }}
+                    className="w-full object-cover transition-transform duration-500 hover:scale-[1.03]"
                     loading="lazy"
                   />
                 </div>
               </div>
 
-              <h1 className="mt-5 text-[20px] font-semibold leading-tight tracking-tight text-white">
-                {displayTitle}
-              </h1>
-
-              <p className="mt-2 text-[12.5px] font-light italic leading-relaxed text-[#8a8a92]">
-                {titleNative}
-              </p>
-
-              <div className="mt-3 flex items-center gap-3">
-                <StarRating rawScore={rawScore} />
-                <span className="text-[12.5px] text-[#82828a]">{scoreLabel} · {popularityLabel} reviews</span>
-              </div>
-
-              {error && (
-                <div className="mt-4 rounded-lg border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
-                  {error}
-                </div>
-              )}
-
-              <ul className="mt-5 divide-y divide-white/[0.05]">
-                {[...metaRowsLeft, ...metaRowsRight].map((row) => (
-                  <MetaRow key={row.label} {...row} />
-                ))}
-              </ul>
-
-              <div className="mt-4 flex flex-wrap gap-2 text-[12px]">
-                <span className="mt-1 ml-2 font-semibold text-[#82828a]">Genre:</span>
-
-                {genres.length > 0 ? (
-                  genres.map((genre) => (
-                    <span
-                      key={genre}
-                      className="cursor-pointer rounded-full border border-[#f09527]/40 px-2.5 py-1 text-[#f39933] transition-colors hover:bg-[#f0982e]/10"
-                    >
-                      {genre}
-                    </span>
-                  ))
-                ) : (
-                  <span className="text-[#52525b]">No genres</span>
-                )}
-              </div>
-
-              <p className="mt-5 text-[13.5px] font-light leading-relaxed text-[#b8b8c0]">
-                {synopsis}
-              </p>
-
-              {tags.length > 0 && (
-                <div className="mt-4 rounded-lg border border-white/[0.04] bg-white/[0.02] p-3.5 text-[12.5px]">
-                  <div className="max-h-[92px] overflow-y-auto custom-scrollbar">
-                    <span className="mb-2 block text-[#82828a]">Tags</span>
-                    <div className="flex flex-wrap gap-x-1.5 gap-y-2">
-                      {tags.map((tag, index) => (
-                        <span key={tag.name} className="inline-flex">
-                          <span className="cursor-pointer text-white/70 transition-colors hover:text-white">#{tag.name}</span>
-                          {index < tags.length - 1 && <span className="ml-1.5 text-[#52525b]">·</span>}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="hidden md:block">
-              <div className="flex flex-row items-start gap-8 lg:gap-10">
-                <div style={{ width: '150px', maxWidth: '150px' }} className="shrink-0">
-                  <div
-                    style={{ width: '150px', maxWidth: '150px' }}
-                    className="relative overflow-hidden rounded-xl ring-1 ring-white/[0.08] shadow-[0_20px_50px_-15px_rgba(0,0,0,0.85)]"
-                  >
-                    <img
-                      src={posterUrl}
-                      alt={displayTitle}
-                      style={{ width: '150px', maxWidth: '150px', height: 'auto', aspectRatio: '2 / 3' }}
-                      className="object-cover transition-transform duration-500 transform hover:scale-[1.03]"
-                      loading="lazy"
-                    />
-                  </div>
-                </div>
-
-                <div className="min-w-0 flex-1">
-                  <h1 className="break-words text-2xl font-semibold leading-tight tracking-tight text-white lg:text-[32px]">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-start justify-between gap-3">
+                  <h1 className="break-words text-[19px] font-semibold leading-tight tracking-tight text-white sm:text-[22px] md:text-[28px]">
                     {displayTitle}
                   </h1>
-
-                  <p className="mt-2 text-[13px] font-light italic leading-relaxed text-[#8a8a92]">
-                    {titleNative}
-                  </p>
-
-                  <div className="mt-3 flex items-center gap-3">
-                    <StarRating rawScore={rawScore} />
-                    <span className="text-[12.5px] text-[#82828a]">{scoreLabel} · {popularityLabel} reviews</span>
-                  </div>
-
-                  {error && (
-                    <div className="mt-4 rounded-lg border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
-                      {error}
-                    </div>
-                  )}
-
-                  <p className="mt-5 text-[14.5px] font-light leading-relaxed text-[#c4c4ce]">
-                    {synopsis}
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-8 border-t border-white/[0.06] pt-6">
-                <div className="grid grid-cols-2 gap-x-10">
-                  <ul className="divide-y divide-white/[0.05]">
-                    {metaRowsLeft.map((row) => (
-                      <MetaRow key={row.label} {...row} />
-                    ))}
-                  </ul>
-                  <ul className="divide-y divide-white/[0.05]">
-                    {metaRowsRight.map((row) => (
-                      <MetaRow key={row.label} {...row} />
-                    ))}
-                  </ul>
                 </div>
 
-                <div className="mt-5 flex flex-wrap gap-2 text-[12.5px]">
-                  <span className="mt-1 ml-2 font-semibold text-[#82828a]">Genre:</span>
-                  {genres.length > 0 ? (
-                    genres.map((genre) => (
-                      <span
-                        key={genre}
-                        className="cursor-pointer rounded-full border border-[#f09527]/40 px-2.5 py-1 text-[#f39933] transition-colors hover:bg-[#f0982e]/10"
-                      >
-                        {genre}
-                      </span>
-                    ))
-                  ) : (
-                    <span className="text-[#52525b]">No genres</span>
-                  )}
+                <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[12px] text-[#8a8a92] sm:text-[13px]">
+                  <span>{typeLabel}</span>
+                  <span>·</span>
+                  <span className={isReleasing ? 'font-semibold text-emerald-400' : 'font-semibold text-[#a1a1aa]'}>
+                    {statusLabel}
+                  </span>
+                  <span>·</span>
+                  <span>{yearLabel}</span>
+                  <span>·</span>
+                  <span className="inline-flex items-center gap-1">
+                    <MdLiveTv className="h-3.5 w-3.5 mb-1.5 text-orange-400" />
+                    {episodeCount}
+                  </span>
                 </div>
 
-                {tags.length > 0 && (
-                  <div className="mt-4 rounded-lg border border-white/[0.04] bg-white/[0.02] p-4 text-[12.5px]">
-                    <div className="max-h-[92px] overflow-y-auto custom-scrollbar">
-                      <span className="mb-2 block text-[#82828a]">Tags</span>
-                      <div className="flex flex-wrap gap-x-1.5 gap-y-2">
-                        {tags.map((tag, index) => (
-                          <span key={tag.name} className="inline-flex">
-                            <span className="cursor-pointer text-white/70 transition-colors hover:text-white">#{tag.name}</span>
-                            {index < tags.length - 1 && <span className="ml-1.5 text-[#52525b]">·</span>}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
+                {error && (
+                  <div className="mt-3 rounded-lg border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+                    {error}
                   </div>
                 )}
+
+                <ul className="mt-3">
+                  {metaRows.map((row) => (
+                    <MetaLine key={row.label} {...row} />
+                  ))}
+                </ul>
+
+
               </div>
+
             </div>
+            <div className="mt-3 flex  gap-2">
+              {genres.length > 0 ? (
+                genres.map((genre) => (
+                  <span
+                    key={genre}
+                    className="cursor-pointer rounded-md border border-[#f09527]/40 px-2.5 py-1 text-[11.5px] text-[#f39933] transition-colors hover:bg-[#f0982e]/10 sm:text-[12px]"
+                  >
+                    {genre}
+                  </span>
+                ))
+              ) : (
+                <span className="text-[12px] text-[#52525b]">No genres</span>
+              )}
+            </div>
+            <AnimeSynopsis synopsis={synopsis} />
           </section>
         </div>
       </div>

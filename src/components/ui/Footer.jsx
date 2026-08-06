@@ -17,7 +17,7 @@ export default function Footer() {
 
         {/* Disclaimer Text */}
         <p className="max-w-2xl text-xs text-muted-foreground/70 leading-relaxed font-normal">
-          This site does not store any files/data on its server. All contents are provided by non-affiliated third parties.
+          AniArix does not host any files itself but instead only displays content from 3rd party providers.
         </p>
 
         {/* Copyright */}

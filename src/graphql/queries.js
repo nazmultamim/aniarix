@@ -61,10 +61,41 @@ const MEDIA_FIELDS = `
   }
 `;
 
+// Relations (SEQUEL/PREQUEL/SIDE_STORY/etc.) are ONLY fetched here, on the
+// single-anime detail query — NOT added to the shared mediaFields fragment,
+// since that fragment is also reused by MEDIA_PAGE_QUERY for list views
+// (top anime, trending, search — 20-25 items per request). Putting
+// relations in the shared fragment would pull a full relations edge list
+// for every item in every list, inflating payload and cache size for
+// pages that never render related anime at all.
 export const MEDIA_DETAIL_QUERY = `
   query ($id: Int) {
     Media(id: $id, type: ANIME) {
       ...mediaFields
+      relations {
+        edges {
+          relationType
+          node {
+            id
+            type
+            title {
+              romaji
+              english
+              native
+            }
+            coverImage {
+              large
+              extraLarge
+            }
+            format
+            status
+            episodes
+            startDate {
+              year
+            }
+          }
+        }
+      }
     }
   }
 

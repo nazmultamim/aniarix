@@ -1,6 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactCompiler: true,
+  allowedDevOrigins: [
+    "arming-scouring-wipe.ngrok-free.dev",
+  ],
 
   // Remove X-Powered-By header
   poweredByHeader: false,

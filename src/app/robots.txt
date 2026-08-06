@@ -1,5 +1,5 @@
 # robots.txt for AniArix
-# https://aniarix.com
+# https://aniarix.site
 #
 # AniArix is an anime discovery and streaming platform.
 # Please respect the following crawling rules.

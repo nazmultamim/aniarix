@@ -3,6 +3,7 @@ import Script from 'next/script';
 import "./globals.css";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import { getCanonicalUrl, siteConfig } from "@/lib/site-config";
+import { AuthProvider } from "@/lib/context/AuthProvider";
 // import AntiInspectGuard from "@/components/security/AntiInspectGuard";
 
 const poppins = Poppins({
@@ -98,7 +99,9 @@ export default function RootLayout({ children }) {
       </head>
       <body className="min-h-full flex flex-col" suppressHydrationWarning>
         {/* <AntiInspectGuard /> */}
-        {children}
+        <AuthProvider>
+          {children}
+        </AuthProvider>
       </body>
       <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID} />
     </html>

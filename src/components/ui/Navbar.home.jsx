@@ -2,8 +2,14 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
-import { Search, Menu, X, Home, Compass, TrendingUp, ChevronRight } from 'lucide-react';
+import { Search, Menu, X, Home, Compass, TrendingUp, ChevronRight, LogIn } from 'lucide-react';
+import { useAuth } from '@/lib/context/AuthProvider';
+import AuthModal from '../auth/AuthModal';
+import ProfileDropdown from './ProfileDropdown';
+
+
 
 const navLinks = [
   { label: 'Home', href: '/home', icon: Home },
@@ -14,6 +20,7 @@ const navLinks = [
 export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
+  const { user, profile, signOut, loading } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchValue, setSearchValue] = useState('');
@@ -21,6 +28,17 @@ export default function Navbar() {
   const mobileSearchRef = useRef(null);
   const desktopSearchRef = useRef(null);
   const resolvedPathname = pathname ?? '/';
+
+  // Auth modal state
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [authMode, setAuthMode] = useState('signin');
+
+  const openAuthModal = (mode = 'signin') => {
+    setAuthMode(mode);
+    setAuthModalOpen(true);
+    setSidebarOpen(false);
+    setSearchOpen(false);
+  };
 
   useEffect(() => {
     const frameId = window.requestAnimationFrame(() => {
@@ -59,6 +77,15 @@ export default function Navbar() {
     return () => { document.body.style.overflow = ''; };
   }, [sidebarOpen]);
 
+
+  const handleLogout = async () => {
+    await signOut();
+    setSidebarOpen(false);
+    router.push('/home');
+    router.refresh();
+  };
+
+
   return (
     <>
       {/* ── Main Navbar ─────────────────────────────────────── */}
@@ -80,10 +107,13 @@ export default function Navbar() {
             <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center shadow-[0_0_12px_rgba(249,115,22,0.5)]">
               <span className="text-white font-black text-xs leading-none">AX</span>
             </div>
-            <span className="font-display text-xl font-black bg-gradient-to-r from-orange-400 via-orange-500 to-red-500 bg-clip-text text-transparent tracking-wide">
+            <span className="font-display text-[24px] font-black bg-gradient-to-r from-orange-400 via-orange-500 to-red-500 bg-clip-text text-transparent tracking-wide">
               AniArix
             </span>
           </Link>
+
+
+
 
           {/* Center (desktop only): Nav links */}
           <div className="hidden md:flex items-center gap-1 flex-1 justify-center">
@@ -94,9 +124,8 @@ export default function Navbar() {
                   key={label}
                   href={href}
                   onClick={() => { setSidebarOpen(false); setSearchOpen(false); }}
-                  className={`relative px-4 py-2 text-sm font-semibold rounded-lg transition-all ${
-                    isActive ? 'text-white' : 'text-muted-foreground hover:text-white hover:bg-white/5'
-                  }`}
+                  className={`relative px-4 py-2 text-sm font-semibold rounded-lg transition-all ${isActive ? 'text-white' : 'text-muted-foreground hover:text-white hover:bg-white/5'
+                    }`}
                 >
                   {label}
                   {isActive && (
@@ -109,13 +138,13 @@ export default function Navbar() {
 
           {/* Right (desktop): Search bar */}
           <div className="hidden md:flex items-center relative group w-64">
-            <div className="relative group w-64">
+            <div className="relative group w-70">
               <div className="absolute left-3.5 top-1/2 -translate-y-1/2 flex items-center gap-2 pointer-events-none">
                 <Search className="w-4 h-4 text-muted-foreground group-focus-within:text-orange-500 transition-colors" />
               </div>
               <input
                 ref={desktopSearchRef}
-                type="search"
+                type="text"
                 value={searchValue}
                 onChange={e => setSearchValue(e.target.value)}
                 onKeyDown={handleSearchKeyDown}
@@ -134,6 +163,28 @@ export default function Navbar() {
             </div>
           </div>
 
+
+          <div className="hidden md:flex justify-between shrink-0">
+            {loading ? (
+
+              <div className="w-10 h-10 rounded-full animate-pulse" />
+            ) : user ? (
+              <ProfileDropdown user={user} profile={profile} onLogout={handleLogout} />
+            ) : (
+              <button
+                onClick={() => openAuthModal('signin')}
+                data-testid="button-signin"
+                className="cursor-pointer relative flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm text-white overflow-hidden transition-all duration-200 group"
+              >
+                <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-orange-500 to-red-600 transition-opacity" />
+                <span className="relative z-10 flex items-center gap-2">
+                  <LogIn className="w-4 h-4" />
+                  Sign in
+                </span>
+              </button>
+            )}
+          </div>
+
           {/* Right (mobile only): Search icon */}
           <div className="md:hidden flex items-center gap-2 shrink-0">
             <button
@@ -144,6 +195,28 @@ export default function Navbar() {
             >
               {searchOpen ? <X className="w-5 h-5 text-orange-400" /> : <Search className="w-5 h-5" />}
             </button>
+
+
+            {loading ? (
+              <div className="w-10 h-10 rounded-full animate-pulse" />
+            ) : user ? (
+              <ProfileDropdown
+                user={user}
+                profile={profile}
+                onLogout={handleLogout}
+                className="relative"
+              />
+            ) : (
+              <button
+                onClick={() => openAuthModal('signin')}
+                data-testid="button-signin-mobile"
+                aria-label="Sign in"
+                className="relative flex items-center justify-center w-10 h-10 rounded-xl text-white overflow-hidden transition-all duration-200"
+              >
+                <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-orange-500 to-red-600 shadow-[0_0_12px_rgba(249,115,22,0.4)]" />
+                <LogIn className="relative z-10 w-4 h-4" />
+              </button>
+            )}
           </div>
         </div>
 
@@ -154,7 +227,7 @@ export default function Navbar() {
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-orange-500 pointer-events-none" />
               <input
                 ref={mobileSearchRef}
-                type="search"
+                type="text"
                 value={searchValue}
                 onChange={e => setSearchValue(e.target.value)}
                 onKeyDown={handleSearchKeyDown}
@@ -186,10 +259,10 @@ export default function Navbar() {
           <div className="flex items-center justify-between px-5 h-16 border-b border-white/5 shrink-0">
             <Link href="/" className="flex items-center gap-2.5">
               <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center shadow-[0_0_10px_rgba(249,115,22,0.4)]">
-                <span className="text-white font-black text-xs">AV</span>
+                <span className="text-white font-black text-xs">AX</span>
               </div>
-              <span className="font-display text-lg font-black bg-gradient-to-r from-orange-400 to-red-500 bg-clip-text text-transparent">
-                AniVault
+              <span className="font-display text-[24px] font-black bg-gradient-to-r from-orange-400 to-red-500 bg-clip-text text-transparent">
+                AniArix
               </span>
             </Link>
             <button
@@ -213,11 +286,10 @@ export default function Navbar() {
                   key={label}
                   href={href}
                   onClick={() => { setSidebarOpen(false); setSearchOpen(false); }}
-                  className={`flex items-center justify-between gap-3 px-3 py-3 rounded-xl mb-1 transition-all group ${
-                    isActive
-                      ? 'bg-gradient-to-r from-orange-500/15 to-red-500/5 border border-orange-500/20 text-white'
-                      : 'text-muted-foreground hover:text-white hover:bg-white/5'
-                  }`}
+                  className={`flex items-center justify-between gap-3 px-3 py-3 rounded-xl mb-1 transition-all group ${isActive
+                    ? 'bg-gradient-to-r from-orange-500/15 to-red-500/5 border border-orange-500/20 text-white'
+                    : 'text-muted-foreground hover:text-white hover:bg-white/5'
+                    }`}
                   data-testid={`link-sidebar-${label.toLowerCase().replace(' ', '-')}`}
                 >
                   <div className="flex items-center gap-3">
@@ -233,6 +305,12 @@ export default function Navbar() {
           </div>
         </div>
       </div>
+
+      <AuthModal
+        isOpen={authModalOpen}
+        onClose={() => setAuthModalOpen(false)}
+        initialMode={authMode}
+      />
     </>
   );
 }

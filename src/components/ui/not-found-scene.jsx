@@ -17,7 +17,7 @@ const PARTICLES = Array.from({ length: 12 }, (_, i) => {
 
 export default function NotFoundPage() {
   return (
-    <div className="relative flex h-screen items-center justify-center overflow-hidden bg-background px-4 py-20">
+    <div className="relative flex items-center justify-center overflow-hidden bg-background px-4 py-20">
       {/* Keyframe definitions for custom animations */}
       <style>{`
         @keyframes float {
