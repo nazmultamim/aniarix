@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Search, Menu, X, Home, Compass, TrendingUp, ChevronRight, LogIn, Inbox } from 'lucide-react';
+import { Search, Menu, X, Home, Compass, TrendingUp, ChevronRight, LogIn } from 'lucide-react';
 import { useAuth } from '@/lib/context/AuthProvider';
 import AuthModal from '../auth/AuthModal';
 import ProfileDropdown from './ProfileDropdown';
@@ -143,16 +143,6 @@ export default function Navbar() {
             {searchOpen ? <X className="w-5 h-5 text-orange-400" /> : <Search className="w-5 h-5" />}
           </button>
 
-          {/* Right: inbox */}
-          <Link
-            href="/notifications"
-            aria-label="Notifications"
-            data-testid="button-inbox"
-            className="hidden sm:flex items-center justify-center w-10 h-10 shrink-0 rounded-xl bg-white/5 hover:bg-white/10 border border-white/8 text-muted-foreground hover:text-white transition-all"
-          >
-            <Inbox className="w-[18px] h-[18px]" />
-          </Link>
-
           {/* Right: profile / sign in */}
           <div className="flex items-center shrink-0">
             {loading ? (
@@ -270,16 +260,6 @@ export default function Navbar() {
                 </Link>
               );
             })}
-            <Link
-              href="/notifications"
-              onClick={() => setSidebarOpen(false)}
-              className="sm:hidden flex items-center gap-3 px-3 py-3 rounded-xl mb-1 text-muted-foreground hover:text-white hover:bg-white/5 transition-all group"
-            >
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-white/5 group-hover:bg-white/10">
-                <Inbox className="w-4 h-4" />
-              </div>
-              <span className="font-semibold text-sm">Notifications</span>
-            </Link>
           </div>
         </div>
       </div>
