@@ -1,19 +1,14 @@
 'use server';
 
-import { getAnimeDetails, getReleasedAnime, getTopAnime, getTrendingAnime, AniListApiError } from '@/services/anilist.service';
+import { getAnimeDetails, getReleasedAnime, getSeasonalAnime, getTopAnime, getTrendingAnime, AniListApiError } from '@/services/anilist.service';
 import { CACHE_TTL, getCached, setCached } from '@/services/Cache.service';
 import { slugify } from '@/lib/slugify';
 
 const DEFAULT_PAGE_SIZE = 24;
-const HERO_SLIDES_CACHE_KEY = 'hero-anime-slides:v5';
+const HERO_SLIDES_CACHE_KEY = 'hero-anime-slides:v8';
 const SELECTED_ANIME_CACHE_PREFIX = 'selected-anime:v3';
 const SLUG_MAP_PREFIX = 'slug-to-anilist:v1';
 const TRENDING_ANIME_CACHE_PREFIX = 'trending-anime-list:v1';
-
-function isAlreadyReleasedAnime(item) {
-  const status = String(item?.status || '').toUpperCase();
-  return status === 'FINISHED';
-}
 
 function isBrowsableAnime(item) {
   const status = String(item?.status || '').toUpperCase();
@@ -31,7 +26,7 @@ function isTvAnimeWithAnilistId(item) {
 }
 
 function hasHeroArtwork(item) {
-  return Boolean(item?.poster);
+  return Boolean(item?.banner || item?.banner_image || item?.poster);
 }
 
 function getStableAnimeId(item) {
@@ -51,6 +46,28 @@ function formatHeroRating(score) {
 
   const normalizedScore = numericScore > 10 ? numericScore / 10 : numericScore;
   return `${normalizedScore.toFixed(1)}/10`;
+}
+
+function getCurrentAniListSeason(date = new Date()) {
+  const month = date.getUTCMonth() + 1;
+  const year = date.getUTCFullYear();
+
+  if (month >= 3 && month <= 5) {
+    return { year, season: 'SPRING' };
+  }
+
+  if (month >= 6 && month <= 8) {
+    return { year, season: 'SUMMER' };
+  }
+
+  if (month >= 9 && month <= 11) {
+    return { year, season: 'FALL' };
+  }
+
+  return {
+    year: month === 12 ? year : year - 1,
+    season: 'WINTER',
+  };
 }
 
 // Maps the normalized AniList anime object into the flat shape the UI expects.
@@ -108,6 +125,7 @@ function mapAnime(item) {
 
 function mapHeroSlide(item, label = 'Featured') {
   const rating = formatHeroRating(item?.score);
+  const bannerImage = item?.banner || item?.banner_image || item?.poster || 'https://placehold.co/1600x900/111111/f97316?text=No+Image';
 
   return {
     id: item.id ?? item.slug ?? item.title ?? null,
@@ -115,10 +133,10 @@ function mapHeroSlide(item, label = 'Featured') {
     slug: item.slug ?? null,
     title: item.title_english || item.title || 'Untitled anime',
     subtitle: label,
-    cover: item.poster || 'https://placehold.co/1600x900/111111/f97316?text=No+Image',
+    banner_image: bannerImage,
     type: item.format || 'Anime',
     genre: Array.isArray(item.genres) ? item.genres : [],
-    synopsis: item.synopsis || 'No synopsis available.',
+    synopsis: item.description || item.synopsis || null,
     rating,
     release: item.year || item.status || 'Now',
     quality: item.episodes && Number(item.episodes) > 1 ? 'HD' : 'SD',
@@ -127,6 +145,7 @@ function mapHeroSlide(item, label = 'Featured') {
     score: item.score ?? null,
     year: item.year ?? null,
     poster_image: item.poster || null,
+    cover: bannerImage,
     focalPoint: 'center 20%',
   };
 }
@@ -134,25 +153,28 @@ function mapHeroSlide(item, label = 'Featured') {
 function buildHeroSlides(items, label) {
   return (items ?? [])
     .filter((item) => item?.id != null)
-    .filter(isAlreadyReleasedAnime)
+    .filter(isBrowsableAnime)
     .filter(hasHeroArtwork)
     .map((item) => mapHeroSlide(item, label));
 }
 
 async function fetchHeroAnimeSlides() {
-  const [topFirstPage, topSecondPage, topThirdPage] = await Promise.all([
+  const { year, season } = getCurrentAniListSeason();
+  const [seasonal, trending, released, topFirstPage] = await Promise.all([
+    getSeasonalAnime(year, season, 1),
+    getTrendingAnime(1, 12),
+    getReleasedAnime(1, 12),
     getTopAnime(1),
-    getTopAnime(2),
-    getTopAnime(3),
   ]);
 
   const merged = [];
   const seen = new Set();
 
   for (const item of [
-    ...buildHeroSlides((topFirstPage?.results ?? []).slice(0, 6), 'Top Rated'),
-    ...buildHeroSlides((topSecondPage?.results ?? []).slice(0, 6), 'Top Rated'),
-    ...buildHeroSlides((topThirdPage?.results ?? []).slice(0, 6), 'Top Rated'),
+    ...buildHeroSlides((seasonal?.results ?? []).slice(0, 4), 'This Season'),
+    ...buildHeroSlides((trending?.results ?? []).slice(0, 4), 'Trending Now'),
+    ...buildHeroSlides((released?.results ?? []).slice(0, 4), 'Recently Released'),
+    ...buildHeroSlides((topFirstPage?.results ?? []).slice(0, 4), 'Top Rated'),
   ]) {
     const key = item.id != null ? String(item.id) : item.slug || item.anilist_id;
     if (!key || seen.has(key)) continue;

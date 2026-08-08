@@ -6,9 +6,10 @@ import { Bell, Share2, Settings, Loader2 } from 'lucide-react';
 import { useAuth } from '@/lib/context/AuthProvider';
 import DashboardNav, { DASHBOARD_TABS } from '@/components/user/Dashboardnav';
 import ProfileTab from '@/components/user/Profiletab';
-import ComingSoonTab from '@/components/user/Comingsoontab';
+// import ComingSoonTab from '@/components/user/Comingsoontab';
 import ContinueWatching from '@/components/user/ContinuewatchingTab';
 import MyListTab from '@/components/user/Mylisttab';
+import SettingsTab from '@/components/user/Settingstab';
 
 export default function UserDashboard() {
   const router = useRouter();
@@ -63,17 +64,14 @@ export default function UserDashboard() {
           <ContinueWatching />
         )}
 
-        {activeTab === 'favourite' && (
+        {/* {activeTab === 'favourite' && (
           <ComingSoonTab icon={Bell} title="Favourite" description="Coming soon!" />
-        )}
+        )} */}
         {activeTab === 'mylist' && (
           <MyListTab />
         )}
-        {activeTab === 'mal' && (
-          <ComingSoonTab icon={Share2} title="MyAnimeList Sync" description="Link your MAL account to sync your list automatically." />
-        )}
         {activeTab === 'settings' && (
-          <ComingSoonTab icon={Settings} title="Settings" description="Playback, notification, and privacy preferences are coming soon." />
+          <SettingsTab />
         )}
       </div>
     </div>

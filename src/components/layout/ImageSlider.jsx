@@ -3,23 +3,30 @@
 import Link from "next/link";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Play, ChevronLeft, ChevronRight, Star } from "lucide-react";
+import { Play, ChevronLeft, ChevronRight, Calendar, Clapperboard, Clock3, Info } from "lucide-react";
 import { cacheSelectedAnimeAction, getHeroAnimeSlidesAction } from "@/lib/action/Getanimeaction";
 import { slugify } from "@/lib/slugify";
 
 const AUTOPLAY_MS = 6000;
 
-export function Hhomeimgeslider() {
-    const [slides, setSlides] = useState([]);
-    const [loading, setLoading] = useState(true);
+export function Hhomeimgeslider({ initialSlides = [] }) {
+    const [slides, setSlides] = useState(() => (Array.isArray(initialSlides) ? initialSlides : []));
+    const [loading, setLoading] = useState(!(Array.isArray(initialSlides) && initialSlides.length > 0));
     const [error, setError] = useState("");
     const [current, setCurrent] = useState(0);
     const [direction, setDirection] = useState(1);
     const [paused, setPaused] = useState(false);
+    const [isMobile, setIsMobile] = useState(false);
     const sectionRef = useRef(null);
     const total = slides.length;
 
     useEffect(() => {
+        if (Array.isArray(initialSlides) && initialSlides.length > 0) {
+            setSlides(initialSlides);
+            setLoading(false);
+            return;
+        }
+
         let alive = true;
 
         async function loadSlides() {
@@ -44,6 +51,16 @@ export function Hhomeimgeslider() {
         return () => {
             alive = false;
         };
+    }, [initialSlides]);
+
+    useEffect(() => {
+        const mediaQuery = window.matchMedia("(max-width: 767px)");
+        const syncViewport = () => setIsMobile(mediaQuery.matches);
+
+        syncViewport();
+        mediaQuery.addEventListener("change", syncViewport);
+
+        return () => mediaQuery.removeEventListener("change", syncViewport);
     }, []);
 
     const go = useCallback(
@@ -80,6 +97,9 @@ export function Hhomeimgeslider() {
     const anilistId = slide?.anilist_id ?? slide?.id ?? null;
     const slideTitle = slide?.title || slide?.title_english || "Anime";
     const slug = slide?.slug || slugify(slideTitle);
+    const bannerImage = slide?.banner_image || slide?.banner || slide?.cover || null;
+    const posterImage = slide?.poster_image || slide?.poster || slide?.cover || bannerImage;
+    const heroImage = isMobile ? posterImage : bannerImage;
     const watchHref = anilistId
         ? `/watch/${slug}/ep-1`
         : "/anime";
@@ -95,8 +115,8 @@ export function Hhomeimgeslider() {
                 <div className="relative z-10 h-full flex items-center">
                     <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 sm:pt-20">
                         <div className="max-w-xl lg:max-w-2xl space-y-4 animate-pulse">
-                            <div className="h-4 w-40 rounded bg-white/10" />
                             <div className="h-16 sm:h-24 w-full rounded bg-white/10" />
+                            <div className="h-4 w-2/3 rounded bg-white/10" />
                             <div className="h-4 w-4/5 rounded bg-white/10" />
                             <div className="flex gap-3">
                                 <div className="h-12 w-32 rounded bg-white/10" />
@@ -119,10 +139,7 @@ export function Hhomeimgeslider() {
                 <div className="relative z-10 h-full flex items-center">
                     <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 sm:pt-20">
                         <div className="max-w-xl lg:max-w-2xl">
-                            <p className="text-sm font-semibold uppercase tracking-[0.3em] text-foreground/45">
-                                Featured anime
-                            </p>
-                            <h1 className="mt-3 font-display text-3xl sm:text-5xl font-extrabold text-foreground">
+                            <h1 className="font-display text-3xl sm:text-5xl font-extrabold text-foreground">
                                 No featured anime found
                             </h1>
                             <p className="mt-4 text-sm sm:text-base text-muted-foreground">
@@ -161,6 +178,34 @@ export function Hhomeimgeslider() {
         exit: { opacity: 0, y: -16, transition: { duration: 0.3, ease: "easeIn" } },
     };
 
+    // Normalize + dedupe: several feeds put the same status word ("Releasing")
+    // into more than one field (status, release, airing). Only ever show a
+    // given piece of text once across the whole meta row.
+    const seenMetaValues = new Set();
+    const claimMetaValue = (value) => {
+        if (!value) return false;
+        const key = String(value).trim().toLowerCase();
+        if (!key || seenMetaValues.has(key)) return false;
+        seenMetaValues.add(key);
+        return true;
+    };
+
+    const status = slide.status || "";
+    const isReleasing = status.toLowerCase() === "releasing";
+    const formatLabel = slide.format || slide.type || "";
+    const genresLabel = Array.isArray(slide.genre)
+        ? slide.genre.join(", ")
+        : Array.isArray(slide.genres)
+            ? slide.genres.join(", ")
+            : "";
+    const rawAiringLabel = slide.airing || slide.airingStatus;
+    const description = slide.description || slide.synopsis || "";
+
+    // Claim status first so any field that just repeats "Releasing" etc. is dropped.
+    claimMetaValue(status);
+    const releaseLabel = claimMetaValue(slide.release) ? slide.release : null;
+    const airingLabel = claimMetaValue(rawAiringLabel) ? rawAiringLabel : null;
+
     return (
         <section
             ref={sectionRef}
@@ -168,7 +213,7 @@ export function Hhomeimgeslider() {
             aria-roledescription="carousel"
             aria-label={`Featured: ${slide.title}`}
             className="relative w-full overflow-hidden bg-background outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-            style={{ height: "70vh", minHeight: "480px", maxHeight: "800px" }}
+            style={{ height: "60vh", minHeight: "480px", maxHeight: "800px" }}
             onMouseEnter={() => setPaused(true)}
             onMouseLeave={() => setPaused(false)}
             data-testid="hero-slider"
@@ -185,7 +230,7 @@ export function Hhomeimgeslider() {
                     exit="exit"
                 >
                     <motion.img
-                        src={slide.cover}
+                        src={heroImage}
                         alt={slide.title}
                         className="absolute inset-0 w-full h-full object-cover motion-reduce:animate-none"
                         style={{ objectPosition: slide.focalPoint || "center 25%" }}
@@ -221,56 +266,50 @@ export function Hhomeimgeslider() {
                                 exit="exit"
                                 className="flex flex-col gap-3 sm:gap-4"
                             >
-                                {/* Eyebrow */}
-                                <div className="flex items-center gap-2 sm:gap-3">
-                                        <span className="px-2 py-0.5 text-[10px] sm:text-xs font-bold tracking-widest bg-primary text-primary-foreground rounded-sm uppercase shadow-[0_0_0_1px_hsl(var(--primary)/0.35)]">
-                                            {slide.subtitle || "Featured"}
-                                        </span>
-                                        <span className="text-xs sm:text-sm font-semibold tracking-[0.2em] text-foreground/55 uppercase truncate">
-                                            {slide.status || slide.release || slide.type}
-                                        </span>
-                                    </div>
-
                                 {/* Title */}
                                 <h1
-                                    className="font-display text-3xl sm:text-5xl lg:text-6xl xl:text-7xl font-extrabold text-foreground leading-[0.92] tracking-tight uppercase [text-shadow:0_2px_24px_hsl(var(--background)/0.6)]"
+                                    className="font-display text-3xl sm:text-5xl lg:text-6xl  font-extrabold text-foreground leading-[0.92] tracking-tight uppercase [text-shadow:0_2px_24px_hsl(var(--background)/0.6)]"
                                 >
                                     {slide.title}
                                 </h1>
 
-                                {/* Badges row */}
-                                <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm">
-                                    <span className="px-2 py-0.5 rounded-sm border border-primary/50 text-primary font-semibold bg-primary/10">
-                                        {slide.format || slide.type || "Anime"}
-                                    </span>
-                                    <span className="text-foreground/30 hidden sm:inline">•</span>
-                                    <span className="text-foreground/55 hidden sm:inline">
-                                        {slide.genre.join(", ")}
-                                    </span>
-                                    <span className="text-foreground/55 sm:hidden">{slide.genre.join(", ")}</span>
+                                {/* Status / meta row */}
+                                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs sm:text-sm font-semibold">
+                                    {formatLabel && (
+                                        <span className="px-2 py-0.5 rounded-sm border border-primary/50 text-primary font-semibold bg-primary/10">
+                                            <span className="text-foreground/90">{formatLabel}</span>
+                                        </span>
+                                    )}
+                                    {genresLabel && (
+                                        <span className="flex items-center gap-1.5 text-foreground/50">
+                                            <span className="text-foreground/90 line-clamp-1">{genresLabel}</span>
+                                        </span>
+                                    )}
+                                    {status && (
+                                        <span className={isReleasing ? "text-emerald-400 uppercase tracking-wide" : "text-foreground/70 uppercase tracking-wide"}>
+                                            {status}
+                                        </span>
+                                    )}
+                                    {releaseLabel && (
+                                        <span className="flex items-center gap-1.5 text-foreground/70">
+                                            <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
+                                            {releaseLabel}
+                                        </span>
+                                    )}
+                                    {airingLabel && (
+                                        <span className="flex items-center gap-1.5 text-foreground/70">
+                                            <Clock3 className="w-3.5 h-3.5 text-muted-foreground" />
+                                            {airingLabel}
+                                        </span>
+                                    )}
                                 </div>
 
-
-                                {/* Stats row */}
-                                <div className="flex items-stretch gap-2 sm:gap-3 mt-1">
-                                    {[
-                                        { label: "Rating", value: slide.rating },
-                                        { label: "Release", value: slide.release },
-                                        { label: "Quality", value: slide.quality },
-                                    ].map((stat) => (
-                                        <div
-                                            key={stat.label}
-                                            className="flex flex-col gap-0.5 px-3 sm:px-4 py-2 sm:py-2.5 rounded-md bg-card/60 border border-card-border backdrop-blur-md min-w-[64px] sm:min-w-[80px] shadow-sm"
-                                        >
-                                            <span className="text-[9px] sm:text-[10px] font-semibold tracking-widest text-muted-foreground uppercase">
-                                                {stat.label}
-                                            </span>
-                                            <span className="font-display text-sm sm:text-lg font-bold text-foreground leading-none">
-                                                {stat.value}
-                                            </span>
-                                        </div>
-                                    ))}
-                                </div>
+                                {/* Description */}
+                                {description && (
+                                    <p className="text-sm sm:text-base text-foreground/40 line-clamp-1 sm:line-clamp-2 max-w-xl">
+                                        {description}
+                                    </p>
+                                )}
 
                                 {/* CTAs */}
                                 <div className="flex items-center gap-3 mt-1">
@@ -303,12 +342,6 @@ export function Hhomeimgeslider() {
                 >
                     <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
                 </button>
-
-                <div className="font-display flex items-center gap-1.5 text-xs sm:text-sm font-bold">
-                    <span className="text-foreground">{String(current + 1).padStart(2, "0")}</span>
-                    <span className="text-foreground/25">/</span>
-                    <span className="text-foreground/45">{String(total).padStart(2, "0")}</span>
-                </div>
 
                 <button
                     data-testid="hero-next-btn"
@@ -347,24 +380,6 @@ export function Hhomeimgeslider() {
                         )}
                     </button>
                 ))}
-            </div>
-
-            {/* ── Star rating corner badge ── */}
-            <div className="absolute top-20 sm:top-24 right-4 sm:right-8 z-20">
-                <AnimatePresence mode="wait">
-                    <motion.div
-                        key={`star-${slide.id}`}
-                        initial={{ opacity: 0, scale: 0.85 }}
-                        animate={{ opacity: 1, scale: 1, transition: { delay: 0.4, duration: 0.4 } }}
-                        exit={{ opacity: 0, scale: 0.85, transition: { duration: 0.2 } }}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-card/70 border border-card-border backdrop-blur-md shadow-sm"
-                    >
-                        <Star className="w-3.5 h-3.5 text-primary fill-primary" />
-                        <span className="font-display text-xs font-bold text-foreground">
-                            {slide.rating}
-                        </span>
-                    </motion.div>
-                </AnimatePresence>
             </div>
         </section>
     );

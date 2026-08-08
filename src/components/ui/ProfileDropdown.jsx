@@ -8,9 +8,18 @@ import {
   LayoutDashboard,
   History,
   List,
-  Heart,
+  // Heart,
   Settings,
 } from 'lucide-react';
+
+function resolveAvatar(...candidates) {
+  for (const candidate of candidates) {
+    if (typeof candidate !== 'string') continue;
+    const trimmed = candidate.trim();
+    if (trimmed) return trimmed;
+  }
+  return '';
+}
 
 export default function ProfileDropdown({
   user,
@@ -33,11 +42,12 @@ export default function ProfileDropdown({
     user?.email ||
     'User';
 
-  const initialAvatar =
-    profile?.avatar_url ||
-    profile?.avatar ||
-    user?.user_metadata?.avatar_url ||
-    user?.user_metadata?.picture;
+  const initialAvatar = resolveAvatar(
+    profile?.avatar_url,
+    profile?.avatar,
+    user?.user_metadata?.avatar_url,
+    user?.user_metadata?.picture,
+  );
 
   const [localAvatar, setLocalAvatar] = useState(initialAvatar);
   const initial = (displayName?.[0] || 'U').toUpperCase();
@@ -65,18 +75,19 @@ export default function ProfileDropdown({
 
   // Keep local avatar in sync if parent props change
   useEffect(() => {
-    const next =
-      profile?.avatar_url ||
-      profile?.avatar ||
-      user?.user_metadata?.avatar_url ||
-      user?.user_metadata?.picture;
+    const next = resolveAvatar(
+      profile?.avatar_url,
+      profile?.avatar,
+      user?.user_metadata?.avatar_url,
+      user?.user_metadata?.picture,
+    );
     setLocalAvatar(next);
   }, [profile, user]);
 
   // Listen for global profile updates
   useEffect(() => {
     function onProfileUpdated(e) {
-      const avatar = e?.detail?.avatar || e?.detail?.avatar_url;
+      const avatar = resolveAvatar(e?.detail?.avatar, e?.detail?.avatar_url);
       if (avatar) setLocalAvatar(avatar);
     }
     window.addEventListener('profile-updated', onProfileUpdated);
@@ -97,7 +108,7 @@ export default function ProfileDropdown({
   if (!isAdmin) {
     menuItems.push(
       { label: 'Continue Watching', href: '/user/dash/continue', icon: History },  
-      { label: 'Favourites', href: '/user/dash/favourite', icon: Heart },
+      // { label: 'Favourites', href: '/user/dash/favourite', icon: Heart },
       { label: 'My List', href: '/user/dash/mylist', icon: List },
       { label: 'Settings', href: '/user/dash/settings', icon: Settings },
     );
@@ -120,9 +131,10 @@ export default function ProfileDropdown({
               src={localAvatar}
               alt={displayName}
               className="h-full w-full object-cover"
+              onError={() => setLocalAvatar('')}
             />
           ) : (
-            <div className="flex h-full w-full items-center justify-center bg-gradient-to-tr from-zinc-800 via-zinc-900 to-orange-950 font-semibold text-zinc-100 text-sm">
+            <div className="flex h-full w-full items-center justify-center bg-gradient-to-tr from-zinc-800 via-zinc-900 to-orange-550 font-semibold text-zinc-100 text-sm">
               {initial}
             </div>
           )}

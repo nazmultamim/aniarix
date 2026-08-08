@@ -2,14 +2,11 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
-import { Search, Menu, X, Home, Compass, TrendingUp, ChevronRight, LogIn } from 'lucide-react';
+import { Search, Menu, X, Home, Compass, TrendingUp, ChevronRight, LogIn, Inbox } from 'lucide-react';
 import { useAuth } from '@/lib/context/AuthProvider';
 import AuthModal from '../auth/AuthModal';
 import ProfileDropdown from './ProfileDropdown';
-
-
 
 const navLinks = [
   { label: 'Home', href: '/home', icon: Home },
@@ -77,7 +74,6 @@ export default function Navbar() {
     return () => { document.body.style.overflow = ''; };
   }, [sidebarOpen]);
 
-
   const handleLogout = async () => {
     await signOut();
     setSidebarOpen(false);
@@ -85,17 +81,16 @@ export default function Navbar() {
     router.refresh();
   };
 
-
   return (
     <>
       {/* ── Main Navbar ─────────────────────────────────────── */}
       <nav className="sticky top-0 z-50 w-full border-b border-white/5 bg-background/70 backdrop-blur-xl shadow-[0_1px_0_rgba(255,255,255,0.04)]">
-        <div className="mx-auto max-w-7xl px-4 h-16 flex items-center justify-between gap-4">
+        <div className="mx-auto max-w-7xl px-4 h-16 flex items-center gap-3 sm:gap-4">
 
-          {/* Left: hamburger (mobile) */}
+          {/* Left: hamburger — always visible, opens the sidebar nav */}
           <button
             onClick={() => setSidebarOpen(true)}
-            className="md:hidden flex items-center justify-center w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 border border-white/8 text-muted-foreground hover:text-white transition-all"
+            className="flex items-center justify-center w-10 h-10 shrink-0 rounded-xl bg-white/5 hover:bg-white/10 border border-white/8 text-muted-foreground hover:text-white transition-all"
             aria-label="Open menu"
             data-testid="button-open-menu"
           >
@@ -103,43 +98,19 @@ export default function Navbar() {
           </button>
 
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 md:shrink-0">
+          <Link href="/" className="flex items-center gap-2 shrink-0">
             <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center shadow-[0_0_12px_rgba(249,115,22,0.5)]">
               <span className="text-white font-black text-xs leading-none">AX</span>
             </div>
-            <span className="font-display text-[24px] font-black bg-gradient-to-r from-orange-400 via-orange-500 to-red-500 bg-clip-text text-transparent tracking-wide">
+            <span className="font-display text-[22px] sm:text-[24px] font-black bg-gradient-to-r from-orange-400 via-orange-500 to-red-500 bg-clip-text text-transparent tracking-wide">
               AniArix
             </span>
           </Link>
 
-
-
-
-          {/* Center (desktop only): Nav links */}
-          <div className="hidden md:flex items-center gap-1 flex-1 justify-center">
-            {navLinks.map(({ label, href }) => {
-              const isActive = label === 'Home' ? (isHydrated && resolvedPathname === '/') : false;
-              return (
-                <Link
-                  key={label}
-                  href={href}
-                  onClick={() => { setSidebarOpen(false); setSearchOpen(false); }}
-                  className={`relative px-4 py-2 text-sm font-semibold rounded-lg transition-all ${isActive ? 'text-white' : 'text-muted-foreground hover:text-white hover:bg-white/5'
-                    }`}
-                >
-                  {label}
-                  {isActive && (
-                    <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4 h-0.5 rounded-full bg-gradient-to-r from-orange-500 to-red-500" />
-                  )}
-                </Link>
-              );
-            })}
-          </div>
-
-          {/* Right (desktop): Search bar */}
-          <div className="hidden md:flex items-center relative group w-64">
-            <div className="relative group w-70">
-              <div className="absolute left-3.5 top-1/2 -translate-y-1/2 flex items-center gap-2 pointer-events-none">
+          {/* Center (desktop): large search bar */}
+          <div className="hidden md:flex flex-1 justify-center px-4">
+            <div className="relative w-full max-w-xl group">
+              <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
                 <Search className="w-4 h-4 text-muted-foreground group-focus-within:text-orange-500 transition-colors" />
               </div>
               <input
@@ -149,7 +120,7 @@ export default function Navbar() {
                 onChange={e => setSearchValue(e.target.value)}
                 onKeyDown={handleSearchKeyDown}
                 placeholder="Search anime, genres..."
-                className="w-full h-10 bg-white/5 border border-white/8 rounded-xl pl-10 pr-4 text-sm text-white placeholder:text-muted-foreground/60 focus:outline-none focus:bg-white/8 focus:border-orange-500/50 focus:shadow-[0_0_0_3px_rgba(249,115,22,0.12),inset_0_0_20px_rgba(249,115,22,0.04)] transition-all"
+                className="w-full h-11 bg-white/5 border border-white/8 rounded-xl pl-11 pr-4 text-sm text-white placeholder:text-muted-foreground/60 focus:outline-none focus:bg-white/8 focus:border-orange-500/50 focus:shadow-[0_0_0_3px_rgba(249,115,22,0.12),inset_0_0_20px_rgba(249,115,22,0.04)] transition-all"
               />
               {searchValue && (
                 <button
@@ -159,63 +130,60 @@ export default function Navbar() {
                   <X className="w-3.5 h-3.5" />
                 </button>
               )}
-              <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-orange-500/5 to-red-500/5 opacity-0 group-focus-within:opacity-100 pointer-events-none transition-opacity" />
             </div>
           </div>
 
+          {/* Right: mobile search toggle (mobile only) */}
+          <button
+            onClick={() => setSearchOpen(prev => !prev)}
+            className="md:hidden flex items-center justify-center w-10 h-10 shrink-0 rounded-xl bg-white/5 hover:bg-white/10 border border-white/8 text-muted-foreground hover:text-white transition-all ml-auto"
+            aria-label="Toggle search"
+            data-testid="button-toggle-search"
+          >
+            {searchOpen ? <X className="w-5 h-5 text-orange-400" /> : <Search className="w-5 h-5" />}
+          </button>
 
-          <div className="hidden md:flex justify-between shrink-0">
+          {/* Right: inbox */}
+          <Link
+            href="/notifications"
+            aria-label="Notifications"
+            data-testid="button-inbox"
+            className="hidden sm:flex items-center justify-center w-10 h-10 shrink-0 rounded-xl bg-white/5 hover:bg-white/10 border border-white/8 text-muted-foreground hover:text-white transition-all"
+          >
+            <Inbox className="w-[18px] h-[18px]" />
+          </Link>
+
+          {/* Right: profile / sign in */}
+          <div className="flex items-center shrink-0">
             {loading ? (
-
-              <div className="w-10 h-10 rounded-full animate-pulse" />
+              <div className="w-10 h-10 rounded-full bg-white/5 animate-pulse" />
             ) : user ? (
               <ProfileDropdown user={user} profile={profile} onLogout={handleLogout} />
             ) : (
-              <button
-                onClick={() => openAuthModal('signin')}
-                data-testid="button-signin"
-                className="cursor-pointer relative flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm text-white overflow-hidden transition-all duration-200 group"
-              >
-                <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-orange-500 to-red-600 transition-opacity" />
-                <span className="relative z-10 flex items-center gap-2">
-                  <LogIn className="w-4 h-4" />
-                  Sign in
-                </span>
-              </button>
-            )}
-          </div>
-
-          {/* Right (mobile only): Search icon */}
-          <div className="md:hidden flex items-center gap-2 shrink-0">
-            <button
-              onClick={() => setSearchOpen(prev => !prev)}
-              className="flex items-center justify-center w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 border border-white/8 text-muted-foreground hover:text-white transition-all"
-              aria-label="Toggle search"
-              data-testid="button-toggle-search"
-            >
-              {searchOpen ? <X className="w-5 h-5 text-orange-400" /> : <Search className="w-5 h-5" />}
-            </button>
-
-
-            {loading ? (
-              <div className="w-10 h-10 rounded-full animate-pulse" />
-            ) : user ? (
-              <ProfileDropdown
-                user={user}
-                profile={profile}
-                onLogout={handleLogout}
-                className="relative"
-              />
-            ) : (
-              <button
-                onClick={() => openAuthModal('signin')}
-                data-testid="button-signin-mobile"
-                aria-label="Sign in"
-                className="relative flex items-center justify-center w-10 h-10 rounded-xl text-white overflow-hidden transition-all duration-200"
-              >
-                <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-orange-500 to-red-600 shadow-[0_0_12px_rgba(249,115,22,0.4)]" />
-                <LogIn className="relative z-10 w-4 h-4" />
-              </button>
+              <>
+                {/* Desktop: labeled button */}
+                <button
+                  onClick={() => openAuthModal('signin')}
+                  data-testid="button-signin"
+                  className="hidden md:flex cursor-pointer relative items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm text-white overflow-hidden transition-all duration-200 group"
+                >
+                  <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-orange-500 to-red-600 transition-opacity" />
+                  <span className="relative z-10 flex items-center gap-2">
+                    <LogIn className="w-4 h-4" />
+                    Sign in
+                  </span>
+                </button>
+                {/* Mobile: icon only */}
+                <button
+                  onClick={() => openAuthModal('signin')}
+                  data-testid="button-signin-mobile"
+                  aria-label="Sign in"
+                  className="md:hidden relative flex items-center justify-center w-10 h-10 rounded-xl text-white overflow-hidden transition-all duration-200"
+                >
+                  <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-orange-500 to-red-600 shadow-[0_0_12px_rgba(249,115,22,0.4)]" />
+                  <LogIn className="relative z-10 w-4 h-4" />
+                </button>
+              </>
             )}
           </div>
         </div>
@@ -247,8 +215,8 @@ export default function Navbar() {
         </div>
       </nav>
 
-      {/* ── Mobile Sidebar Overlay ──────────────────────────── */}
-      <div className={`fixed inset-0 z-[60] transition-all duration-300 md:hidden ${sidebarOpen ? 'pointer-events-auto' : 'pointer-events-none'}`}>
+      {/* ── Sidebar Overlay (all breakpoints) ───────────────── */}
+      <div className={`fixed inset-0 z-[60] transition-all duration-300 ${sidebarOpen ? 'pointer-events-auto' : 'pointer-events-none'}`}>
         <div
           onClick={() => setSidebarOpen(false)}
           className={`absolute inset-0 bg-black/70 backdrop-blur-sm transition-opacity duration-300 ${sidebarOpen ? 'opacity-100' : 'opacity-0'}`}
@@ -302,6 +270,16 @@ export default function Navbar() {
                 </Link>
               );
             })}
+            <Link
+              href="/notifications"
+              onClick={() => setSidebarOpen(false)}
+              className="sm:hidden flex items-center gap-3 px-3 py-3 rounded-xl mb-1 text-muted-foreground hover:text-white hover:bg-white/5 transition-all group"
+            >
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-white/5 group-hover:bg-white/10">
+                <Inbox className="w-4 h-4" />
+              </div>
+              <span className="font-semibold text-sm">Notifications</span>
+            </Link>
           </div>
         </div>
       </div>
