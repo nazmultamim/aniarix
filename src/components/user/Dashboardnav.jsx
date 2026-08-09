@@ -7,7 +7,7 @@ import {
 export const DASHBOARD_TABS = [
   { id: 'profile', label: 'Profile', icon: User },
   { id: 'continue', label: 'Continue', icon: History },
-  { id: 'favourite', label: 'Favourite', icon: Heart },
+  // { id: 'favourite', label: 'Favourite', icon: Heart },
   { id: 'mylist', label: 'MyList', icon: List },
   { id: 'settings', label: 'Settings', icon: Settings },
 ];
