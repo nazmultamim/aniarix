@@ -2,6 +2,7 @@ import Navbar from "@/components/ui/Navbar.home";
 import PwaRegister from "@/components/pwa/PwaRegister";
 import { getCanonicalUrl, siteConfig } from "@/lib/site-config";
 import Footer from "@/components/ui/Footer";
+import MaintenanceNotice from "@/components/ui/MaintenanceNotice";
 
 export async function generateMetadata() {
   const siteName = siteConfig.name;
@@ -18,13 +19,15 @@ export async function generateMetadata() {
   };
 }
 
-export default function MainLayout({ children }) {
+export default function MainLayout() {
   return (
     <>
-      <Navbar />
+      {/* <Navbar />
       <PwaRegister />
       {children}
-      <Footer />
+      <Footer /> */}
+
+      <MaintenanceNotice />
     </>
   );
 }
