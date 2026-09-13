@@ -7,9 +7,9 @@
 # Public pages may be indexed.
 # Streaming pages, API endpoints, and internal resources should not be crawled.
 
-# ==========================================================
+# =========================================================
 # Default Rules
-# ==========================================================
+# =========================================================
 
 User-agent: *
 Allow: /
