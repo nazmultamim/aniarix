@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import AnimeCard from '@/components/layout/AnimeCard';
 import { searchAnimeAction, getTopAnimeAction } from '@/lib/action/Searchanimeaction';
+import { getStableAnimeIdentity } from '@/lib/anime-display';
 import {
   Search, X, ChevronLeft, ChevronRight, Loader2, Filter, SlidersVertical,
   LayoutGrid, List as ListIcon, Star, ChevronDown, ChevronUp
@@ -482,7 +483,7 @@ export default function SearchPageClient() {
 }
 
 function getAnimeListKey(anime, index) {
-  return anime?.id ?? anime?.anilist_id ?? anime?.slug ?? anime?.title ?? `anime-${index}`;
+  return getStableAnimeIdentity(anime, `anime:${index}`);
 }
 
 function ListRow({ anime }) {

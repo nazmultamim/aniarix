@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import AnimeCard from '@/components/layout/AnimeCard';
 import Pagination from '@/components/ui/Pagination';
 import { getAnimeListAction } from '@/lib/action/Getanimeaction';
+import { getStableAnimeIdentity } from '@/lib/anime-display';
 
 export default function AnimeBrowseClient({
   initialItems = [],
@@ -81,7 +82,7 @@ export default function AnimeBrowseClient({
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
               {items.map((anime, index) => (
                 <AnimeCard
-                  key={anime?.id ?? anime?.anilist_id ?? anime?.slug ?? anime?.title ?? `anime-${index}`}
+                  key={getStableAnimeIdentity(anime, `anime:${index}`)}
                   anime={anime}
                 />
               ))}

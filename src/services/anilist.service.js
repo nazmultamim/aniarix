@@ -3,10 +3,34 @@ import { graphqlRequest, AniListApiError } from '@/graphql/client';
 import { MEDIA_DETAIL_QUERY, MEDIA_PAGE_QUERY } from '@/graphql/queries';
 import { slugify } from '@/lib/slugify';
 import { normalizeAnimeScore } from '@/lib/anime-score';
+import { normalizeAniListAnime } from './anime/anime-normalizer';
+import { AnimeIdentityConflictError, persistTrustedAniListAnime } from './anime/anime-identity.service';
 
 export { AniListApiError } from '@/graphql/client';
 
 const DEFAULT_PAGE_SIZE = 20;
+
+async function persistAniListMedia(items) {
+  const uniqueItems = [...new Map((items || [])
+    .filter((item) => item?.id)
+    .map((item) => [item.id, item])).values()];
+  const outcomes = await Promise.allSettled(uniqueItems.map(async (item) => {
+    const anime = normalizeAniListAnime(item);
+    if (anime?.anilistId) await persistTrustedAniListAnime(anime);
+  }));
+
+  for (const [index, outcome] of outcomes.entries()) {
+    if (outcome.status !== 'rejected') continue;
+    const item = uniqueItems[index];
+    const error = outcome.reason;
+    console.warn('[anilist.service] Catalog mapping persistence failed.', {
+      anilistId: item?.id ?? null,
+      malId: item?.idMal ?? null,
+      conflict: error instanceof AnimeIdentityConflictError,
+      name: error?.name || 'Error',
+    });
+  }
+}
 
 function getQueryPageSize(requestedSize) {
   return Math.min(25, Math.max(1, Number(requestedSize) || DEFAULT_PAGE_SIZE));
@@ -346,6 +370,7 @@ export async function getAnimeDetails(anilistId) {
       const result = await graphqlRequest(MEDIA_DETAIL_QUERY, {
         id: normalizedAnilistId,
       });
+      await persistAniListMedia([result?.Media]);
       return normalizeMedia(result?.Media);
     },
     CACHE_TTL.TWELVE_HOURS
@@ -367,6 +392,7 @@ export async function searchAnime(query, page = 1) {
         ...buildPageVariables(page, getQueryPageSize(requestedPageSize), { query: trimmed, sort: 'desc', orderBy: 'popularity' }),
       });
       const pageResult = result?.Page;
+      await persistAniListMedia(pageResult?.media);
       const items = (pageResult?.media || [])
         .filter(isReleasedMedia)
         .map(normalizeMedia)
@@ -393,6 +419,7 @@ export async function getTopAnime(page = 1) {
         ...buildPageVariables(page, getQueryPageSize(requestedPageSize), { orderBy: 'score', sort: 'desc' }),
       });
       const pageResult = result?.Page;
+      await persistAniListMedia(pageResult?.media);
       const items = (pageResult?.media || [])
         .filter(isReleasedMedia)
         .map(normalizeMedia)
@@ -421,6 +448,7 @@ export async function getSeasonalAnime(year, season, page = 1) {
         ...buildPageVariables(page, getQueryPageSize(requestedPageSize), { year, season, orderBy: 'popularity', sort: 'desc' }),
       });
       const pageResult = result?.Page;
+      await persistAniListMedia(pageResult?.media);
       const items = (pageResult?.media || [])
         .filter(isReleasedMedia)
         .map(normalizeMedia)
@@ -451,6 +479,7 @@ export async function getTrendingAnime(page = 1, limit = 20) {
         ...buildPageVariables(safePage, getQueryPageSize(requestedPageSize), { orderBy: 'trending', sort: 'desc' }),
       });
       const pageResult = result?.Page;
+      await persistAniListMedia(pageResult?.media);
       const items = (pageResult?.media || [])
         .filter(isReleasedMedia)
         .map(normalizeMedia)
@@ -482,6 +511,7 @@ export async function getReleasedAnime(page = 1, limit = 24) {
         }),
       });
       const pageResult = result?.Page;
+      await persistAniListMedia(pageResult?.media);
       const items = (pageResult?.media || [])
         .filter(isReleasedMedia)
         .map(normalizeMedia)
@@ -511,6 +541,7 @@ export async function searchAnimeAdvanced(filters = {}, page = 1, pageSize = DEF
         ...buildPageVariables(page, getQueryPageSize(normalizedPageSize), filters),
       });
       const pageResult = result?.Page;
+      await persistAniListMedia(pageResult?.media);
       const items = (pageResult?.media || [])
         .filter(isReleasedMedia)
         .map(normalizeMedia)

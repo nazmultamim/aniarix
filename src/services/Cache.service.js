@@ -10,6 +10,8 @@ const inflightRequests = new Map();
 
 export const CACHE_TTL = {
   TWELVE_HOURS: 60 * 60 * 12,
+  TWENTY_FOUR_HOURS: 60 * 60 * 24,
+  SEVEN_DAYS: 60 * 60 * 24 * 7,
 };
 
 function decodeCachedValue(value) {

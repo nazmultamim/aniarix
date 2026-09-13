@@ -1,7 +1,10 @@
-import { getAnimeDetails } from '@/services/anilist.service';
+import { getAnime } from '@/services/anime/anime.service';
 
-export async function getAnimeOgPayload(anilistId) {
-  if (!anilistId) {
+export async function getAnimeOgPayload(identityOrAniListId) {
+  const identity = typeof identityOrAniListId === 'object' && identityOrAniListId !== null
+    ? identityOrAniListId
+    : { anilistId: identityOrAniListId };
+  if (!identity.anilistId && !identity.malId) {
     return {
       title: 'AniArix',
       japaneseTitle: null,
@@ -10,9 +13,10 @@ export async function getAnimeOgPayload(anilistId) {
   }
 
   try {
-    const anime = await getAnimeDetails(anilistId);
-    const title = String(anime?.title_english || anime?.title || anime?.title_native || `AniArix #${anilistId}`).trim();
-    const japaneseTitle = String(anime?.title_native || '').trim();
+    const anime = await getAnime(identity);
+    const fallbackId = anime?.anilistId || anime?.malId || identity.anilistId || identity.malId;
+    const title = String(anime?.title?.english || anime?.title?.romaji || anime?.title?.native || `AniArix #${fallbackId}`).trim();
+    const japaneseTitle = String(anime?.title?.native || '').trim();
 
     return {
       title,
@@ -21,7 +25,7 @@ export async function getAnimeOgPayload(anilistId) {
     };
   } catch {
     return {
-      title: `AniArix #${anilistId}`,
+      title: `AniArix #${identity.anilistId || identity.malId}`,
       japaneseTitle: null,
       bannerUrl: null,
     };

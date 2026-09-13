@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import AnimeCard from '@/components/layout/AnimeCard';
 import { getTrendingAnimeAction } from '@/lib/action/Getanimeaction';
+import { getStableAnimeIdentity } from '@/lib/anime-display';
 
 export default async function TrendingAnimeSection({ limit = 12 } = {}) {
   let anime = [];
@@ -16,8 +17,16 @@ export default async function TrendingAnimeSection({ limit = 12 } = {}) {
     error = 'Failed to load trending anime right now.';
   }
 
+  const seenAnime = new Set();
+  const uniqueAnime = anime.filter((item) => {
+    const key = getStableAnimeIdentity(item);
+    if (key === 'anime:unidentified' || seenAnime.has(key)) return false;
+    seenAnime.add(key);
+    return true;
+  });
+
   return (
-    <section className="mx-auto max-w-7xl px-4 pt-15 pb-16 mt-8">
+    <section className="mx-auto w-full max-w-[1600px] px-4 pt-15 pb-16 mt-8 sm:px-6 lg:px-8 2xl:px-10">
       <div className="mb-8 flex items-end justify-between gap-4">
         <div>
           <h2 className="flex items-center gap-3 text-2xl font-display font-bold text-white md:text-3xl">
@@ -35,11 +44,11 @@ export default async function TrendingAnimeSection({ limit = 12 } = {}) {
         </Link>
       </div>
 
-      {anime.length ? (
+      {uniqueAnime.length ? (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-          {anime.map((item, index) => (
+          {uniqueAnime.map((item) => (
             <AnimeCard
-              key={item?.id ?? item?.anilist_id ?? item?.slug ?? item?.title ?? `trending-anime-${index}`}
+              key={getStableAnimeIdentity(item)}
               anime={item}
             />
           ))}

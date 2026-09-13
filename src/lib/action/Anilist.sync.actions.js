@@ -1,6 +1,8 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { normalizeAniListAnime } from '@/services/anime/anime-normalizer';
+import { AnimeIdentityConflictError, persistTrustedAniListAnime } from '@/services/anime/anime-identity.service';
 
 const ANILIST_API = 'https://graphql.anilist.co';
 
@@ -22,6 +24,7 @@ const LIST_QUERY = `
           updatedAt
           media {
             id
+            idMal
             title { romaji english }
             coverImage { large }
             episodes
@@ -39,6 +42,31 @@ const LIST_QUERY = `
 // Minimum time between manual re-syncs for a single user — protects
 // against a user (or a bug) spamming AniList's API through our server.
 const MIN_SYNC_INTERVAL_MS = 60_000;
+
+async function persistSyncedAniListMappings(lists) {
+  const media = lists
+    .flatMap((list) => list?.entries || [])
+    .map((entry) => entry?.media)
+    .filter((item) => item?.id);
+  const uniqueMedia = [...new Map(media.map((item) => [item.id, item])).values()];
+
+  const outcomes = await Promise.allSettled(uniqueMedia.map(async (item) => {
+    const anime = normalizeAniListAnime(item);
+    if (anime?.anilistId) await persistTrustedAniListAnime(anime);
+  }));
+
+  for (const [index, outcome] of outcomes.entries()) {
+    if (outcome.status !== 'rejected') continue;
+    const item = uniqueMedia[index];
+    const error = outcome.reason;
+    console.warn('[anilist-sync] Catalog mapping persistence failed.', {
+      anilistId: item?.id ?? null,
+      malId: item?.idMal ?? null,
+      conflict: error instanceof AnimeIdentityConflictError,
+      name: error?.name || 'Error',
+    });
+  }
+}
 
 /**
  * Saves the AniList username on the profile and triggers the first sync
@@ -124,6 +152,10 @@ export async function syncAnilistList() {
 
   const lists = json?.data?.MediaListCollection?.lists || [];
   const now = new Date().toISOString();
+
+  // Global catalog persistence is independent from the user-specific sync
+  // cache below. Failures are logged but never discard the user's list.
+  await persistSyncedAniListMappings(lists);
 
   const { error } = await supabase
     .from('anilist_sync_cache')

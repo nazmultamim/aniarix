@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Play, ChevronLeft, ChevronRight, Calendar, Clapperboard, Clock3, Info } from "lucide-react";
+import { Play, ChevronLeft, ChevronRight, Calendar, Clock3 } from "lucide-react";
 import { cacheSelectedAnimeAction, getHeroAnimeSlidesAction } from "@/lib/action/Getanimeaction";
+import { getAnimeDisplayTitle, getAnimeExternalIds, getStableAnimeIdentity } from "@/lib/anime-display";
 import { slugify } from "@/lib/slugify";
 
 const AUTOPLAY_MS = 6000;
@@ -94,15 +95,18 @@ export function Hhomeimgeslider({ initialSlides = [] }) {
     }, [next]);
 
     const slide = slides[current] || null;
-    const anilistId = slide?.anilist_id ?? slide?.id ?? null;
-    const slideTitle = slide?.title || slide?.title_english || "Anime";
+    const { anilistId, malId } = getAnimeExternalIds(slide);
+    const slideTitle = getAnimeDisplayTitle(slide, "Anime");
     const slug = slide?.slug || slugify(slideTitle);
-    const bannerImage = slide?.banner_image || slide?.banner || slide?.cover || null;
-    const posterImage = slide?.poster_image || slide?.poster || slide?.cover || bannerImage;
+    const getImageUrl = (...sources) => sources.find((source) => typeof source === "string" && source.trim()) || null;
+    const bannerImage = getImageUrl(slide?.banner_image, slide?.banner, slide?.cover, slide?.poster_image, slide?.poster);
+    const posterImage = getImageUrl(slide?.poster_image, slide?.poster, slide?.cover, bannerImage);
     const heroImage = isMobile ? posterImage : bannerImage;
-    const watchHref = anilistId
-        ? `/watch/${slug}/ep-1`
+    const watchRoute = anilistId ? slug : malId ? `mal-${malId}` : null;
+    const watchHref = watchRoute
+        ? `/watch/${watchRoute}/ep-1`
         : "/anime";
+    const slideKey = getStableAnimeIdentity(slide);
 
     if (loading) {
         return (
@@ -113,7 +117,7 @@ export function Hhomeimgeslider({ initialSlides = [] }) {
             >
                 <div className="absolute inset-0 bg-gradient-to-r from-background via-background/90 to-background/60" />
                 <div className="relative z-10 h-full flex items-center">
-                    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 sm:pt-20">
+                    <div className="mx-auto w-full max-w-[1600px] px-4 sm:px-6 lg:px-8 2xl:px-10 pt-16 sm:pt-20">
                         <div className="max-w-xl lg:max-w-2xl space-y-4 animate-pulse">
                             <div className="h-16 sm:h-24 w-full rounded bg-white/10" />
                             <div className="h-4 w-2/3 rounded bg-white/10" />
@@ -137,7 +141,7 @@ export function Hhomeimgeslider({ initialSlides = [] }) {
                 aria-label="Featured anime unavailable"
             >
                 <div className="relative z-10 h-full flex items-center">
-                    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 sm:pt-20">
+                    <div className="mx-auto w-full max-w-[1600px] px-4 sm:px-6 lg:px-8 2xl:px-10 pt-16 sm:pt-20">
                         <div className="max-w-xl lg:max-w-2xl">
                             <h1 className="font-display text-3xl sm:text-5xl font-extrabold text-foreground">
                                 No featured anime found
@@ -211,7 +215,7 @@ export function Hhomeimgeslider({ initialSlides = [] }) {
             ref={sectionRef}
             tabIndex={0}
             aria-roledescription="carousel"
-            aria-label={`Featured: ${slide.title}`}
+            aria-label={`Featured: ${slideTitle}`}
             className="relative w-full overflow-hidden bg-background outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             style={{ height: "60vh", minHeight: "480px", maxHeight: "800px" }}
             onMouseEnter={() => setPaused(true)}
@@ -221,7 +225,7 @@ export function Hhomeimgeslider({ initialSlides = [] }) {
             {/* ── Background image ── */}
             <AnimatePresence custom={direction} initial={false}>
                 <motion.div
-                    key={`bg-${slide.id}`}
+                    key={`bg-${slideKey}`}
                     className="absolute inset-0 z-0"
                     custom={direction}
                     variants={imgVariants}
@@ -229,15 +233,17 @@ export function Hhomeimgeslider({ initialSlides = [] }) {
                     animate="center"
                     exit="exit"
                 >
-                    <motion.img
-                        src={heroImage}
-                        alt={slide.title}
-                        className="absolute inset-0 w-full h-full object-cover motion-reduce:animate-none"
-                        style={{ objectPosition: slide.focalPoint || "center 25%" }}
-                        initial={{ scale: 1 }}
-                        animate={{ scale: paused ? 1 : 1.06 }}
-                        transition={{ duration: AUTOPLAY_MS / 1000, ease: "linear" }}
-                    />
+                    {heroImage && (
+                        <motion.img
+                            src={heroImage}
+                            alt={slideTitle}
+                            className="absolute inset-0 w-full h-full object-cover motion-reduce:animate-none"
+                            style={{ objectPosition: slide.focalPoint || "center 25%" }}
+                            initial={{ scale: 1 }}
+                            animate={{ scale: paused ? 1 : 1.06 }}
+                            transition={{ duration: AUTOPLAY_MS / 1000, ease: "linear" }}
+                        />
+                    )}
                     {/* Left dark fade */}
                     <div className="absolute inset-0 bg-gradient-to-r from-background sm:from-background via-background/75 sm:via-background/65 to-background/35 sm:to-transparent" />
                     {/* Bottom fade */}
@@ -254,11 +260,11 @@ export function Hhomeimgeslider({ initialSlides = [] }) {
 
             {/* ── Slide content ── */}
             <div className="relative z-10 h-full flex items-center">
-                <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 sm:pt-20">
+                <div className="mx-auto w-full max-w-[1600px] px-4 sm:px-6 lg:px-8 2xl:px-10 pt-16 sm:pt-20">
                     <div className="max-w-xl lg:max-w-2xl">
                         <AnimatePresence custom={direction} mode="wait">
                             <motion.div
-                                key={`content-${slide.id}`}
+                                key={`content-${slideKey}`}
                                 custom={direction}
                                 variants={contentVariants}
                                 initial="enter"
@@ -270,7 +276,7 @@ export function Hhomeimgeslider({ initialSlides = [] }) {
                                 <h1
                                     className="font-display text-3xl sm:text-5xl lg:text-6xl  font-extrabold text-foreground leading-[0.92] tracking-tight uppercase [text-shadow:0_2px_24px_hsl(var(--background)/0.6)]"
                                 >
-                                    {slide.title}
+                                    {slideTitle}
                                 </h1>
 
                                 {/* Status / meta row */}

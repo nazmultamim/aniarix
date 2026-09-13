@@ -30,7 +30,8 @@ export function resetThrottle() {
  * Supabase is just the periodic backup + cross-device sync.
  */
 export async function saveProgressThrottled({
-  anilistId,
+  anilistId = null,
+  malId = null,
   title,
   poster,
   episode,
@@ -44,7 +45,7 @@ export async function saveProgressThrottled({
   // Always save immediately on completion
   if (completed) {
     return saveProgressNow({
-      anilistId, title, poster, episode, language,
+      anilistId, malId, title, poster, episode, language,
       currentTimeSeconds, durationSeconds, server,
       completed: true, status: 'completed',
     });
@@ -65,7 +66,7 @@ export async function saveProgressThrottled({
   lastSyncedTime = currentTimeSeconds;
   try {
     await upsertWatchProgress({
-      anilistId, title, poster, episode, language,
+      anilistId, malId, title, poster, episode, language,
       currentTimeSeconds, durationSeconds, server,
       completed, status,
     });
@@ -79,7 +80,8 @@ export async function saveProgressThrottled({
  * Use on: episode switch, language switch, server switch, completion, unmount.
  */
 export async function saveProgressNow({
-  anilistId,
+  anilistId = null,
+  malId = null,
   title,
   poster,
   episode,
@@ -94,7 +96,7 @@ export async function saveProgressNow({
   lastSyncedTime = currentTimeSeconds;
   try {
     await upsertWatchProgress({
-      anilistId, title, poster, episode, language,
+      anilistId, malId, title, poster, episode, language,
       currentTimeSeconds, durationSeconds, server,
       completed, status: completed ? 'completed' : status,
     });

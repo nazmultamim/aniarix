@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import AnimeCard from '@/components/layout/AnimeCard';
 import Pagination from '@/components/ui/Pagination';
 import { getTrendingAnimeAction } from '@/lib/action/Getanimeaction';
+import { getStableAnimeIdentity } from '@/lib/anime-display';
 
 export default function TrendingAnimeBrowseClient({
   initialItems = [],
@@ -84,7 +85,7 @@ export default function TrendingAnimeBrowseClient({
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
               {items.map((anime, index) => (
                 <AnimeCard
-                  key={anime?.id ?? anime?.anilist_id ?? anime?.slug ?? anime?.title ?? `trending-anime-${index}`}
+                  key={getStableAnimeIdentity(anime, `anime:${index}`)}
                   anime={anime}
                 />
               ))}

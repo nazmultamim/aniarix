@@ -84,8 +84,8 @@ export default function Navbar() {
   return (
     <>
       {/* ── Main Navbar ─────────────────────────────────────── */}
-      <nav className="sticky top-0 z-50 w-full border-b border-white/5 bg-background/70 backdrop-blur-xl shadow-[0_1px_0_rgba(255,255,255,0.04)]">
-        <div className="mx-auto max-w-7xl px-4 h-16 flex items-center gap-3 sm:gap-4">
+      <nav className="sticky top-0 z-50 w-full border-b border-white/5 bg-background/60 backdrop-blur-xl shadow-[0_1px_0_rgba(255,255,255,0.04)]">
+        <div className="mx-auto flex h-16 w-full max-w-[1600px] items-center gap-3 px-4 sm:gap-4 sm:px-6 lg:px-8 2xl:px-10">
 
           {/* Left: hamburger — always visible, opens the sidebar nav */}
           <button

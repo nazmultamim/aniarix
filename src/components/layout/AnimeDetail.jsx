@@ -55,7 +55,7 @@ export default function AnimeDetail({ anime }) {
   const slug = anime.slug || slugify(titleEnglish);
 
   // Everything the /watch page needs travels via URL — no extra fetch there.
-  const anilistId = anime.anilist_id ?? anime.id ?? null;
+  const anilistId = anime.anilist_id ?? null;
   const watchHref = anilistId
     ? `/watch/${slug}/ep-1`
     : null;

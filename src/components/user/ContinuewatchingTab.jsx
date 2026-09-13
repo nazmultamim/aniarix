@@ -22,7 +22,7 @@ export default function ContinueWatching() {
     setLoading(false);
   }
 
-  async function handleRemove(id, anilistId, episode) {
+  async function handleRemove(id, identityKey, episode) {
     setRemoving(id);
 
     // Optimistic removal from UI
@@ -31,8 +31,8 @@ export default function ContinueWatching() {
 
     // Remove the local cache entry regardless of what happens next —
     // it's just a resume-point cache, safe to drop either way.
-    if (anilistId && episode) {
-      deleteProgressEntry(anilistId, episode);
+    if (identityKey && episode) {
+      deleteProgressEntry(identityKey, episode);
     }
 
     // Delete the actual DB row — without this, the entry reappears on
@@ -81,7 +81,11 @@ export default function ContinueWatching() {
         const progress = Math.round(entry.progress_percent || 0);
         const isCompleted = entry.completed || progress >= 95;
         const episode = Number(entry.episode) || 1;
-        const watchUrl = `/watch/${entry.anilist_id}/ep-${episode}?lang=${entry.language || 'sub'}${entry.server ? `&server=${entry.server}` : ''}`;
+        const routeId = entry.anilist_id ?? (entry.mal_id != null ? `mal-${entry.mal_id}` : null);
+        const localProgressKey = entry.anilist_id ?? (entry.mal_id != null ? `mal-${entry.mal_id}` : null);
+        const watchUrl = routeId
+          ? `/watch/${routeId}/ep-${episode}?lang=${entry.language || 'sub'}${entry.server ? `&server=${entry.server}` : ''}`
+          : '/anime';
 
         return (
           <div
@@ -93,7 +97,7 @@ export default function ContinueWatching() {
               {entry.poster ? (
                 <img
                   src={entry.poster}
-                  alt={entry.title || `Anime ${entry.anilist_id}`}
+                  alt={entry.title || `Anime ${entry.anilist_id || entry.mal_id}`}
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                   loading="lazy"
                 />
@@ -135,7 +139,7 @@ export default function ContinueWatching() {
             <div className="absolute bottom-0 left-0 right-0 p-2.5">
               <Link href={watchUrl}>
                 <h3 className="text-xs font-semibold text-white truncate mb-1.5 group-hover:text-orange-300 transition-colors">
-                  {entry.title || `Anime ${entry.anilist_id}`}
+                  {entry.title || `Anime ${entry.anilist_id || entry.mal_id}`}
                 </h3>
               </Link>
 
@@ -169,7 +173,7 @@ export default function ContinueWatching() {
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                handleRemove(entry.id, entry.anilist_id, entry.episode);
+                handleRemove(entry.id, localProgressKey, entry.episode);
               }}
               disabled={removing === entry.id}
               className="absolute top-2 right-2 w-6 h-6 rounded-md bg-black/70 backdrop-blur-sm border border-white/10 flex items-center justify-center   transition-all hover:bg-red-500/20 hover:border-red-500/40 hover:text-red-400 text-white/60 z-10"

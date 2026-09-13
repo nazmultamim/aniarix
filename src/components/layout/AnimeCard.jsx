@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Star, Tv } from 'lucide-react';
 import { slugify } from '@/lib/slugify';
 import { formatAnimeScore } from '@/lib/anime-score';
+import { getAnimeDisplayTitle, getAnimeExternalIds } from '@/lib/anime-display';
 
 function toDisplayLabel(value) {
   if (typeof value === 'string') return value;
@@ -12,19 +13,17 @@ function toDisplayLabel(value) {
 }
 
 export default function AnimeCard({ anime }) {
-  const imageSrc =
-    anime?.poster_image ||
-    'https://placehold.co/400x600/111111/f97316?text=No+Image';
+  const imageSrc = typeof (anime?.poster_image || anime?.poster) === 'string' && (anime?.poster_image || anime?.poster).trim()
+    ? (anime.poster_image || anime.poster)
+    : 'https://placehold.co/400x600/111111/f97316?text=No+Image';
 
-  const title =
-    anime?.title_english ||
-    anime?.title ||
-    'Untitled anime';
+  const title = getAnimeDisplayTitle(anime, 'Untitled anime');
   const slug = anime?.slug || slugify(title);
 
-  const anilistId = anime?.anilist_id ?? anime?.id ?? null;
-  const watchHref = anilistId
-    ? `/watch/${slug}/ep-1`
+  const { anilistId, malId } = getAnimeExternalIds(anime);
+  const watchRoute = anilistId ? slug : malId ? `mal-${malId}` : null;
+  const watchHref = watchRoute
+    ? `/watch/${watchRoute}/ep-1`
     : '/anime';
 
   return (

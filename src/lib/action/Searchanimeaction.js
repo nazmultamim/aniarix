@@ -1,7 +1,6 @@
 'use server';
 
-import { searchAnimeAdvanced, getTopAnime, AniListApiError } from '@/services/anilist.service';
-import { normalizeAnimeScore } from '@/lib/anime-score';
+import { getTopAnime, searchAnime } from '@/services/anime/anime.service';
 
 const DEFAULT_PAGE_SIZE = 20;
 
@@ -10,20 +9,21 @@ function isVisibleAnime(item) {
 
   const format = String(item?.format || '').toUpperCase();
   const status = String(item?.status || '').toUpperCase();
-  const hasAnilistId = item?.id != null && String(item.id).trim() !== '';
+  const hasIdentity = item?.anilistId || item?.malId;
 
-  return hasAnilistId && format === 'TV' && status !== 'NOT_YET_RELEASED' && status !== 'CANCELLED' && status !== 'HIATUS';
+  return hasIdentity && format === 'TV' && status !== 'NOT_YET_RELEASED' && status !== 'CANCELLED' && status !== 'HIATUS';
 }
 
 // Same flat shape AnimeCard already expects (see getanimeaction.js).
 function mapAnime(item) {
   return {
-    id: item.id != null ? String(item.id) : null,
-    anilist_id: item.id != null ? String(item.id) : null,
-    title: item.title || item.title_english || item.title_native || null,
-    title_english: item.title_english || item.title || null,
+    id: item.anilistId != null ? String(item.anilistId) : item.malId != null ? `mal-${item.malId}` : null,
+    anilist_id: item.anilistId != null ? String(item.anilistId) : null,
+    mal_id: item.malId != null ? String(item.malId) : null,
+    title: item.title?.romaji || item.title?.english || item.title?.native || null,
+    title_english: item.title?.english || item.title?.romaji || null,
     poster_image: item.poster || null,
-    score: normalizeAnimeScore(item.score ?? null),
+    score: item.score ?? null,
     type: item.format || null,
     genres: item.genres ?? [],
     synopsis: item.description || null,
@@ -44,7 +44,7 @@ export async function searchAnimeAction(filters = {}, page = 1, pageSize = DEFAU
 
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
-      const data = await searchAnimeAdvanced(filters, safePage, pageSize);
+      const data = await searchAnime(filters.query || '', { page: safePage, perPage: pageSize });
       const items = (data.results ?? []).filter(isVisibleAnime).map(mapAnime);
 
       return {
@@ -59,9 +59,8 @@ export async function searchAnimeAction(filters = {}, page = 1, pageSize = DEFAU
       };
     } catch (err) {
       lastError = err;
-      // If it's a temporary error (5xx), retry
-      if (err instanceof AniListApiError && err.status >= 500 && attempt < retries) {
-        console.warn(`[searchAnimeAction] Attempt ${attempt + 1} failed with status ${err.status}, retrying...`);
+      if (attempt < retries) {
+        console.warn(`[searchAnimeAction] Attempt ${attempt + 1} failed, retrying...`);
         // Wait a bit before retrying (exponential backoff)
         await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempt)));
         continue;
@@ -70,18 +69,8 @@ export async function searchAnimeAction(filters = {}, page = 1, pageSize = DEFAU
     }
   }
 
-  // Format the error message based on the status code
-  if (lastError instanceof AniListApiError) {
-    if (lastError.status === 504 || lastError.status === 503) {
-      return { error: 'AniList API is temporarily unavailable. Please try again in a moment.' };
-    }
-    if (lastError.status === 429) {
-      return { error: 'Too many requests. Please wait a moment and try again.' };
-    }
-    return { error: lastError.message };
-  }
-
-  return { error: 'Failed to search anime. Please try again.' };
+  console.error('[searchAnimeAction] metadata request failed.', { name: lastError?.name || 'Error' });
+  return { error: 'Anime search is temporarily unavailable.', items: [] };
 }
 
 /**
@@ -92,14 +81,13 @@ export async function getTopAnimeAction(page = 1, limit = 6, retries = 2) {
 
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
-      const data = await getTopAnime(page);
+      const data = await getTopAnime({ page, limit });
       const items = (data.results ?? []).filter(isVisibleAnime).slice(0, limit).map(mapAnime);
       return { success: true, items };
     } catch (err) {
       lastError = err;
-      // If it's a temporary error (5xx), retry
-      if (err instanceof AniListApiError && err.status >= 500 && attempt < retries) {
-        console.warn(`[getTopAnimeAction] Attempt ${attempt + 1} failed with status ${err.status}, retrying...`);
+      if (attempt < retries) {
+        console.warn(`[getTopAnimeAction] Attempt ${attempt + 1} failed, retrying...`);
         await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempt)));
         continue;
       }
@@ -107,9 +95,6 @@ export async function getTopAnimeAction(page = 1, limit = 6, retries = 2) {
     }
   }
 
-  const message =
-    lastError instanceof AniListApiError
-      ? lastError.message
-      : 'Failed to load top anime.';
-  return { error: message };
+  console.error('[getTopAnimeAction] metadata request failed.', { name: lastError?.name || 'Error' });
+  return { error: 'Top anime is temporarily unavailable.', items: [] };
 }

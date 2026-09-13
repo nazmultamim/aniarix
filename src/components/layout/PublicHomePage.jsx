@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import AnimeCard from '@/components/layout/AnimeCard';
 import { getReleasedAnimeAction } from '@/lib/action/Getanimeaction';
+import { getStableAnimeIdentity } from '@/lib/anime-display';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,7 +18,7 @@ export default async function PublicHomePage() {
 
   return (
     <main className="min-h-[100dvh] text-foreground">
-      <section className="mx-auto max-w-7xl px-4 pb-16">
+      <section className="mx-auto w-full max-w-[1600px] px-4 pb-16 sm:px-6 lg:px-8 2xl:px-10">
         <div className="mb-8 flex items-end justify-between gap-4">
           <div>
             <h2 className="flex items-center gap-3 text-2xl font-display font-bold text-white md:text-3xl">
@@ -38,7 +39,7 @@ export default async function PublicHomePage() {
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
           {anime.map((item, index) => (
             <AnimeCard
-              key={item?.id ?? item?.anilist_id ?? item?.slug ?? item?.title ?? `anime-${index}`}
+              key={getStableAnimeIdentity(item, `anime:${index}`)}
               anime={item}
             />
           ))}

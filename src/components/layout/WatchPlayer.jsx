@@ -35,7 +35,7 @@ function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
 }
 
-export default function WatchPlayer({ initialAnimeId = null, initialAnime = null, initialEpisode = 1 }) {
+export default function WatchPlayer({ initialAnimeId = null, initialAnimeIdentity = null, initialAnime = null, initialEpisode = 1 }) {
   const router = useRouter();
   const routeParams = useParams();
   const searchParams = useSearchParams();
@@ -43,15 +43,21 @@ export default function WatchPlayer({ initialAnimeId = null, initialAnime = null
   const { user } = useAuth();
 
   const slugParam = Array.isArray(routeParams?.slug) ? routeParams.slug[0] : routeParams?.slug;
-  const routeSlug = slugParam || initialAnime?.slug || slugify(initialAnime?.title_english || initialAnime?.title || initialAnimeId || 'watch');
-  const selectedAnimeId = initialAnime?.anilist_id ?? initialAnime?.id ?? initialAnimeId ?? null;
-  const anilistId = selectedAnimeId;
+  const animeIdentity = {
+    // `initialAnimeId` is retained strictly as the legacy AniList prop.
+    // Never infer an AniList ID from a generic `anime.id`.
+    anilistId: initialAnimeIdentity?.anilistId ?? initialAnime?.anilistId ?? initialAnime?.anilist_id ?? initialAnimeId ?? null,
+    malId: initialAnimeIdentity?.malId ?? initialAnime?.malId ?? initialAnime?.mal_id ?? null,
+  };
+  const { anilistId, malId } = animeIdentity;
+  const progressId = anilistId || (malId ? `mal-${malId}` : null);
+  const hasStreamingIdentity = Boolean(anilistId || malId);
+  const routeSlug = slugParam || initialAnime?.slug || slugify(initialAnime?.title_english || initialAnime?.title || anilistId || malId || 'watch');
   const initialTitle = initialAnime?.title_english || initialAnime?.title || 'Now Watching';
   const initialPoster = initialAnime?.poster_image || initialAnime?.poster || initialAnime?.banner || '';
 
   const [pageTitle, setPageTitle] = useState(initialTitle);
   const [posterUrl, setPosterUrl] = useState(initialPoster);
-  const hasCustomEpisodeCount = Number(initialAnime?.episodes) > 1;
   const routeEpisodeParam = Array.isArray(routeParams?.ep) ? routeParams.ep[0] : routeParams?.ep;
 
   const hasExplicitEpisodeRef = useRef(Boolean(routeEpisodeParam));
@@ -73,7 +79,11 @@ export default function WatchPlayer({ initialAnimeId = null, initialAnime = null
   );
   const [serverId, setServerId] = useState(() => {
     const requestedServer = searchParams.get('server');
-    return SERVERS.some((server) => server.id === requestedServer) ? requestedServer : DEFAULT_SERVER;
+    const selectedServer = SERVERS.find((server) => server.id === requestedServer);
+    const supportsIdentity = (server) => server?.supportedIds?.some((idType) => (
+      (idType === 'anilist' && Boolean(anilistId)) || (idType === 'mal' && Boolean(malId))
+    ));
+    return selectedServer && supportsIdentity(selectedServer) ? selectedServer.id : DEFAULT_SERVER;
   });
   const [autoNext, setAutoNext] = useState(true);
   const [autoPlay, setAutoPlay] = useState(false);
@@ -91,8 +101,8 @@ export default function WatchPlayer({ initialAnimeId = null, initialAnime = null
   const [currentStatus, setCurrentStatus] = useState('watching');
 
   const latestProgressRef = useRef({ currentTime: 0, duration: 0, completed: false });
-  const contextRef = useRef({ anilistId, episode, language, serverId, pageTitle, posterUrl });
-  contextRef.current = { anilistId, episode, language, serverId, pageTitle, posterUrl };
+  const contextRef = useRef({ anilistId, malId, episode, language, serverId, pageTitle, posterUrl });
+  contextRef.current = { anilistId, malId, episode, language, serverId, pageTitle, posterUrl };
 
   const playerWrapRef = useRef(null);
   const serverSectionRef = useRef(null);
@@ -106,10 +116,10 @@ export default function WatchPlayer({ initialAnimeId = null, initialAnime = null
   }, [initialEpisode]);
 
   useEffect(() => {
-    if (!anilistId || resumeCheckedRef.current) return;
+    if (!hasStreamingIdentity || resumeCheckedRef.current) return;
     resumeCheckedRef.current = true;
 
-    getWatchProgress(anilistId).then((result) => {
+    getWatchProgress(animeIdentity).then((result) => {
       const entry = result?.entry;
       if (!entry) return;
 
@@ -133,56 +143,7 @@ export default function WatchPlayer({ initialAnimeId = null, initialAnime = null
       syncUrl(dbEpisode, dbLanguage, dbServer);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [anilistId]);
-
-  useEffect(() => {
-    if (!anilistId) return;
-    if (hasCustomEpisodeCount) return;
-
-    let cancelled = false;
-
-    (async () => {
-      try {
-        const query = `
-          query ($id: Int) {
-            Media(id: $id, type: ANIME) {
-              episodes
-              title { romaji english native }
-              coverImage { large extraLarge }
-            }
-          }
-        `;
-        const res = await fetch('https://graphql.anilist.co', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-          body: JSON.stringify({ query, variables: { id: Number(anilistId) } }),
-        });
-        if (!res.ok) return;
-
-        const json = await res.json();
-        const media = json?.data?.Media;
-        const eps = media?.episodes;
-        const cover = media?.coverImage?.large || media?.coverImage?.extraLarge || '';
-        const resolvedTitle = (media?.title?.english || media?.title?.romaji || media?.title?.native || '').trim();
-
-        if (!cancelled && Number.isFinite(eps) && eps > 0) {
-          setTotalEpisodes(clamp(Number(eps), 1, 5000));
-        }
-        if (!cancelled && resolvedTitle) {
-          setPageTitle((current) => (current === 'Now Watching' ? resolvedTitle : current));
-        }
-        if (!cancelled && cover) {
-          setPosterUrl((current) => current || cover);
-        }
-      } catch (err) {
-        console.warn('[WatchPlayer] Failed to fetch metadata:', err);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [anilistId, hasCustomEpisodeCount]);
+  }, [anilistId, malId]);
 
   const syncUrl = useCallback((nextEpisode, nextLanguage, nextServer = serverId) => {
     const params = new URLSearchParams();
@@ -195,9 +156,10 @@ export default function WatchPlayer({ initialAnimeId = null, initialAnime = null
   const handleEpisodeSelect = useCallback((num) => {
     const clamped = clamp(num, 1, totalEpisodes);
 
-    if (anilistId) {
+    if (hasStreamingIdentity) {
       saveProgressNow({
         anilistId,
+        malId,
         title: pageTitle,
         poster: posterUrl,
         episode,
@@ -216,14 +178,15 @@ export default function WatchPlayer({ initialAnimeId = null, initialAnime = null
     latestProgressRef.current = { currentTime: 0, duration: 0, completed: false };
     resetThrottle();
     syncUrl(clamped, language);
-  }, [anilistId, episode, language, pageTitle, posterUrl, serverId, syncUrl, totalEpisodes]);
+  }, [anilistId, episode, hasStreamingIdentity, language, malId, pageTitle, posterUrl, serverId, syncUrl, totalEpisodes]);
 
   const handleLanguageSelect = useCallback((lang) => {
     const nextLang = lang === 'dub' ? 'dub' : 'sub';
 
-    if (anilistId) {
+    if (hasStreamingIdentity) {
       saveProgressNow({
         anilistId,
+        malId,
         title: pageTitle,
         poster: posterUrl,
         episode,
@@ -239,15 +202,20 @@ export default function WatchPlayer({ initialAnimeId = null, initialAnime = null
     setPlayerLoading(true);
     resetThrottle();
     syncUrl(episode, nextLang);
-  }, [anilistId, episode, language, pageTitle, posterUrl, serverId, syncUrl]);
+  }, [anilistId, episode, hasStreamingIdentity, language, malId, pageTitle, posterUrl, serverId, syncUrl]);
 
   const handleServerSelect = useCallback((nextServerId) => {
     const server = SERVERS.find((item) => item.id === nextServerId);
     if (!server) return;
+    const supported = server.supportedIds?.some((idType) => (
+      (idType === 'anilist' && Boolean(anilistId)) || (idType === 'mal' && Boolean(malId))
+    ));
+    if (!supported) return;
 
-    if (anilistId) {
+    if (hasStreamingIdentity) {
       saveProgressNow({
         anilistId,
+        malId,
         title: pageTitle,
         poster: posterUrl,
         episode,
@@ -263,13 +231,13 @@ export default function WatchPlayer({ initialAnimeId = null, initialAnime = null
     setPlayerLoading(true);
     resetThrottle();
     syncUrl(episode, language, server.id);
-  }, [anilistId, episode, language, pageTitle, posterUrl, serverId, syncUrl]);
+  }, [anilistId, episode, hasStreamingIdentity, language, malId, pageTitle, posterUrl, serverId, syncUrl]);
 
   useEffect(() => {
     function handleMessage(event) {
       handlePlayerMessage(
         event,
-        { anilistId, episode, serverId, language },
+        { anilistId: progressId, episode, serverId, language },
         {
           onProgress: (entry) => {
             setPlayerLoading(false);
@@ -280,9 +248,10 @@ export default function WatchPlayer({ initialAnimeId = null, initialAnime = null
               completed: entry.status === 'completed',
             };
 
-            if (anilistId) {
+            if (hasStreamingIdentity) {
               saveProgressThrottled({
                 anilistId,
+                malId,
                 title: pageTitle,
                 poster: posterUrl,
                 episode,
@@ -301,9 +270,10 @@ export default function WatchPlayer({ initialAnimeId = null, initialAnime = null
             }
           },
           onComplete: () => {
-            if (anilistId) {
+            if (hasStreamingIdentity) {
               saveProgressNow({
                 anilistId,
+                malId,
                 title: pageTitle,
                 poster: posterUrl,
                 episode,
@@ -334,27 +304,28 @@ export default function WatchPlayer({ initialAnimeId = null, initialAnime = null
 
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, [anilistId, autoNext, episode, handleEpisodeSelect, language, pageTitle, posterUrl, serverId, totalEpisodes, currentStatus]);
+  }, [anilistId, autoNext, episode, handleEpisodeSelect, hasStreamingIdentity, language, malId, pageTitle, posterUrl, progressId, serverId, totalEpisodes, currentStatus]);
 
   useEffect(() => {
-    if (!anilistId || !episode) return;
+    if (!progressId || !episode) return;
 
-    const existing = getProgressEntry(anilistId, episode);
+    const existing = getProgressEntry(progressId, episode);
     const resume = existing && existing.status !== 'completed' ? Math.floor(existing.currentTime || 0) : 0;
     const frame = window.requestAnimationFrame(() => {
       setResumeTime(resume);
     });
 
     return () => window.cancelAnimationFrame(frame);
-  }, [anilistId, episode, serverId]);
+  }, [episode, progressId, serverId]);
 
   useEffect(() => {
     return () => {
       const ctx = contextRef.current;
       const progress = latestProgressRef.current;
-      if (ctx.anilistId && progress.currentTime > 0) {
+      if ((ctx.anilistId || ctx.malId) && progress.currentTime > 0) {
         saveProgressNow({
           anilistId: ctx.anilistId,
+          malId: ctx.malId,
           title: ctx.pageTitle,
           poster: ctx.posterUrl,
           episode: ctx.episode,
@@ -392,7 +363,7 @@ export default function WatchPlayer({ initialAnimeId = null, initialAnime = null
     return Array.from({ length: pageEnd - pageStart + 1 }, (_, i) => pageStart + i);
   }, [trimmedSearch, totalEpisodes, pageIndex]);
 
-  if (!anilistId) {
+  if (!hasStreamingIdentity) {
     return (
       <div className="rounded-2xl border border-white/[0.08] bg-card/50 p-10 text-center text-muted-foreground/60">
         No anime selected.{' '}
@@ -403,7 +374,7 @@ export default function WatchPlayer({ initialAnimeId = null, initialAnime = null
     );
   }
 
-  const embedUrl = buildEmbedUrl(serverId, anilistId, episode, language);
+  const embedUrl = buildEmbedUrl(serverId, animeIdentity, episode, language);
   const showLoading = playerLoading && Boolean(embedUrl);
   const pageCount = Math.ceil(totalEpisodes / EPISODES_PER_PAGE);
   const pageStart = pageIndex * EPISODES_PER_PAGE + 1;
@@ -453,7 +424,7 @@ export default function WatchPlayer({ initialAnimeId = null, initialAnime = null
             <ToolbarButton icon={SkipForward} label="Next" onClick={() => handleEpisodeSelect(episode + 1)} disabled={episode >= totalEpisodes} />
             <span className="mx-1 hidden h-5 w-px bg-white/[0.08]" />
 
-            {user && (
+            {user && anilistId && (
               <StatusModal
                 anilistId={anilistId}
                 title={pageTitle}
@@ -501,6 +472,9 @@ export default function WatchPlayer({ initialAnimeId = null, initialAnime = null
                     key={server.id}
                     label={server.label}
                     active={serverId === server.id}
+                    disabled={!server.supportedIds?.some((idType) => (
+                      (idType === 'anilist' && Boolean(anilistId)) || (idType === 'mal' && Boolean(malId))
+                    ))}
                     onClick={() => handleServerSelect(server.id)}
                   />
                 ))}
@@ -666,15 +640,16 @@ function LangPill({ icon: Icon, label, active, onClick }) {
   );
 }
 
-function ServerPill({ label, active, onClick }) {
+function ServerPill({ label, active, disabled, onClick }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      disabled={disabled}
       className={`rounded-lg text-center border px-3 py-1.5 text-xs font-bold transition-all ${active
           ? 'border-orange-500/40 bg-orange-500/15 text-orange-300'
           : 'border-white/[0.1] bg-white/[0.04] text-muted-foreground hover:text-white'
-        }`}
+        } disabled:pointer-events-none disabled:opacity-35`}
     >
       {label}
     </button>

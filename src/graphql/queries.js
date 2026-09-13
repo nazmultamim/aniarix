@@ -1,6 +1,7 @@
 const MEDIA_FIELDS = `
   fragment mediaFields on Media {
     id
+    idMal
     title {
       romaji
       english

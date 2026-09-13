@@ -1,11 +1,12 @@
 'use server';
 
-import { getAnimeDetails, getReleasedAnime, getSeasonalAnime, getTopAnime, getTrendingAnime, AniListApiError } from '@/services/anilist.service';
+import { getAnime, getFeaturedAnime, getReleasedAnime, getTopAnime, getTrendingAnime, searchAnime } from '@/services/anime/anime.service';
 import { CACHE_TTL, getCached, setCached } from '@/services/Cache.service';
+import { getAnimeDisplayTitle, getAnimeExternalIds, getAnimeTitleVariants, getStableAnimeIdentity } from '@/lib/anime-display';
 import { slugify } from '@/lib/slugify';
 
 const DEFAULT_PAGE_SIZE = 24;
-const HERO_SLIDES_CACHE_KEY = 'hero-anime-slides:v8';
+const HERO_SLIDES_CACHE_KEY = 'hero-anime-slides:v9';
 const SELECTED_ANIME_CACHE_PREFIX = 'selected-anime:v3';
 const SLUG_MAP_PREFIX = 'slug-to-anilist:v1';
 const TRENDING_ANIME_CACHE_PREFIX = 'trending-anime-list:v1';
@@ -19,23 +20,38 @@ function isTvAnimeWithAnilistId(item) {
   if (!item) return false;
 
   const format = String(item?.format || '').toUpperCase();
-  const anilistId = item?.anilist_id;
-  const hasAnilistId = anilistId != null && String(anilistId).trim() !== '';
+  const hasIdentity = item?.anilistId || item?.malId;
 
-  return hasAnilistId && isBrowsableAnime(item) && format === 'TV';
+  return hasIdentity && isBrowsableAnime(item) && format === 'TV';
 }
 
 function hasHeroArtwork(item) {
-  return Boolean(item?.banner || item?.banner_image || item?.poster);
+  return [item?.banner, item?.banner_image, item?.poster, item?.poster_image]
+    .some((image) => typeof image === 'string' && image.trim());
+}
+
+function heroString(value, fallback = '') {
+  return typeof value === 'string' ? value.trim() || fallback : fallback;
+}
+
+function heroImage(...sources) {
+  return sources.find((source) => typeof source === 'string' && source.trim()) || null;
+}
+
+function heroGenres(value) {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .map((genre) => {
+      if (typeof genre === 'string') return genre.trim();
+      if (genre && typeof genre === 'object' && typeof genre.name === 'string') return genre.name.trim();
+      return '';
+    })
+    .filter(Boolean);
 }
 
 function getStableAnimeId(item) {
-  const fallback = item?.id ?? item?.slug ?? item?.title ?? item?.title_english ?? item?.title_native;
-  if (fallback != null && String(fallback).trim() !== '') {
-    return String(fallback);
-  }
-
-  return 'anime-unknown';
+  return getStableAnimeIdentity(item);
 }
 
 function formatHeroRating(score) {
@@ -48,42 +64,25 @@ function formatHeroRating(score) {
   return `${normalizedScore.toFixed(1)}/10`;
 }
 
-function getCurrentAniListSeason(date = new Date()) {
-  const month = date.getUTCMonth() + 1;
-  const year = date.getUTCFullYear();
-
-  if (month >= 3 && month <= 5) {
-    return { year, season: 'SPRING' };
-  }
-
-  if (month >= 6 && month <= 8) {
-    return { year, season: 'SUMMER' };
-  }
-
-  if (month >= 9 && month <= 11) {
-    return { year, season: 'FALL' };
-  }
-
-  return {
-    year: month === 12 ? year : year - 1,
-    season: 'WINTER',
-  };
-}
-
 // Maps the normalized AniList anime object into the flat shape the UI expects.
 function mapAnime(item) {
   return {
     id: getStableAnimeId(item),
-    anilist_id: item.anilist_id != null ? String(item.anilist_id) : null,
-    slug: item.slug ?? slugify(item.title || item.title_english || item.title_native || item.id),
-    title: item.title || item.title_english || item.title_native || null,
-    title_english: item.title_english || item.title || null,
-    title_japanese: item.title_native || null,
+    anilist_id: item.anilistId != null ? String(item.anilistId) : null,
+    mal_id: item.malId != null ? String(item.malId) : null,
+    // Keep the canonical identity available to new consumers while retaining
+    // the existing snake_case fields for the current UI.
+    anilistId: item.anilistId != null ? String(item.anilistId) : null,
+    malId: item.malId != null ? String(item.malId) : null,
+    slug: item.slug ?? slugify(item.title?.english || item.title?.romaji || item.title?.native || item.anilistId || item.malId),
+    title: item.title?.romaji || item.title?.english || item.title?.native || null,
+    title_english: item.title?.english || item.title?.romaji || null,
+    title_japanese: item.title?.native || null,
     poster_image: item.poster || null,
     poster: item.poster || null,
     score: item.score ?? null,
-    average_score: item.average_score ?? item.score ?? null,
-    mean_score: item.mean_score ?? null,
+    average_score: item.averageScore ?? item.score ?? null,
+    mean_score: item.meanScore ?? null,
     popularity: item.popularity ?? null,
     favorites: item.favorites ?? null,
     type: item.format || null,
@@ -94,25 +93,25 @@ function mapAnime(item) {
     duration: item.duration ? `${item.duration} min` : null,
     rating: null,
     rank: null,
-    year: item.season_year ?? null,
+    year: item.seasonYear ?? null,
     season: item.season ?? null,
-    season_year: item.season_year ?? null,
-    season_int: item.season_int ?? null,
+    season_year: item.seasonYear ?? null,
+    season_int: null,
     genres: item.genres ?? [],
     genre: item.genres ?? [],
     synopsis: item.description || null,
-    aired_from: item.start_date ?? null,
-    aired_to: item.end_date ?? null,
+    aired_from: item.startDate ?? null,
+    aired_to: item.endDate ?? null,
     broadcast: item.broadcast ?? null,
-    next_airing_episode: item.next_airing_episode ?? null,
+    next_airing_episode: item.nextAiringEpisode ?? null,
     studios: item.studios ?? [],
-    studio_names: item.studio_names ?? [],
-    main_studios: item.main_studios ?? [],
+    studio_names: item.studioNames ?? [],
+    main_studios: item.mainStudios ?? [],
     tags: item.tags ?? [],
     hashtag: item.hashtag ?? null,
-    country_of_origin: item.country_of_origin ?? null,
-    is_adult: item.is_adult ?? false,
-    site_url: item.site_url ?? null,
+    country_of_origin: item.countryOfOrigin ?? null,
+    is_adult: item.isAdult ?? false,
+    site_url: item.siteUrl ?? null,
     trailer: item.trailer ?? null,
     banner: item.banner ?? null,
     banner_image: item.banner ?? null,
@@ -124,27 +123,48 @@ function mapAnime(item) {
 }
 
 function mapHeroSlide(item, label = 'Featured') {
-  const rating = formatHeroRating(item?.score);
-  const bannerImage = item?.banner || item?.banner_image || item?.poster || 'https://placehold.co/1600x900/111111/f97316?text=No+Image';
+  const { anilistId, malId } = getAnimeExternalIds(item);
+  const titles = getAnimeTitleVariants(item);
+  const title = getAnimeDisplayTitle(item);
+  const posterImage = heroImage(item?.poster, item?.poster_image);
+  const bannerImage = heroImage(item?.banner, item?.banner_image, posterImage);
+  const genres = heroGenres(item?.genres ?? item?.genre);
+  const status = heroString(item?.status);
+  const format = heroString(item?.format ?? item?.type);
+  const seasonYear = Number.isInteger(Number(item?.seasonYear)) ? Number(item.seasonYear) : null;
+
+  if ((!anilistId && !malId) || !title || !bannerImage) return null;
 
   return {
-    id: item.id ?? item.slug ?? item.title ?? null,
-    anilist_id: item.anilist_id ?? null,
-    slug: item.slug ?? null,
-    title: item.title_english || item.title || 'Untitled anime',
+    id: anilistId || `mal-${malId}`,
+    anilist_id: anilistId,
+    mal_id: malId,
+    anilistId,
+    malId,
+    slug: heroString(item?.slug) || slugify(title),
+    title,
+    title_english: titles.english || title,
+    title_romaji: titles.romaji || null,
+    title_native: titles.native || null,
     subtitle: label,
     banner_image: bannerImage,
-    type: item.format || 'Anime',
-    genre: Array.isArray(item.genres) ? item.genres : [],
-    synopsis: item.description || item.synopsis || null,
-    rating,
-    release: item.year || item.status || 'Now',
+    banner: bannerImage,
+    type: format || 'Anime',
+    format: format || null,
+    genre: genres,
+    genres,
+    synopsis: heroString(item?.description ?? item?.synopsis),
+    description: heroString(item?.description ?? item?.synopsis),
+    rating: formatHeroRating(item?.score),
+    release: seasonYear || status || '',
+    airing: status === 'RELEASING' ? 'Airing' : '',
     quality: item.episodes && Number(item.episodes) > 1 ? 'HD' : 'SD',
     episodes: item.episodes ?? null,
-    status: item.status || null,
+    status,
     score: item.score ?? null,
-    year: item.year ?? null,
-    poster_image: item.poster || null,
+    year: seasonYear,
+    poster_image: posterImage,
+    poster: posterImage,
     cover: bannerImage,
     focalPoint: 'center 20%',
   };
@@ -152,37 +172,35 @@ function mapHeroSlide(item, label = 'Featured') {
 
 function buildHeroSlides(items, label) {
   return (items ?? [])
-    .filter((item) => item?.id != null)
     .filter(isBrowsableAnime)
     .filter(hasHeroArtwork)
-    .map((item) => mapHeroSlide(item, label));
+    .map((item) => mapHeroSlide(item, label))
+    .filter(Boolean);
+}
+
+function heroIdentityKeys(slide) {
+  const { anilistId, malId } = getAnimeExternalIds(slide);
+  return [
+    anilistId ? `anilist:${anilistId}` : null,
+    malId ? `mal:${malId}` : null,
+  ].filter(Boolean);
+}
+
+function selectHeroSlides(items, label = 'Featured') {
+  const seen = new Set();
+  return buildHeroSlides(items, label)
+    .filter((slide) => {
+      const keys = heroIdentityKeys(slide);
+      if (keys.length === 0 || keys.some((key) => seen.has(key))) return false;
+      keys.forEach((key) => seen.add(key));
+      return true;
+    })
+    .slice(0, 6);
 }
 
 async function fetchHeroAnimeSlides() {
-  const { year, season } = getCurrentAniListSeason();
-  const [seasonal, trending, released, topFirstPage] = await Promise.all([
-    getSeasonalAnime(year, season, 1),
-    getTrendingAnime(1, 12),
-    getReleasedAnime(1, 12),
-    getTopAnime(1),
-  ]);
-
-  const merged = [];
-  const seen = new Set();
-
-  for (const item of [
-    ...buildHeroSlides((seasonal?.results ?? []).slice(0, 4), 'This Season'),
-    ...buildHeroSlides((trending?.results ?? []).slice(0, 4), 'Trending Now'),
-    ...buildHeroSlides((released?.results ?? []).slice(0, 4), 'Recently Released'),
-    ...buildHeroSlides((topFirstPage?.results ?? []).slice(0, 4), 'Top Rated'),
-  ]) {
-    const key = item.id != null ? String(item.id) : item.slug || item.anilist_id;
-    if (!key || seen.has(key)) continue;
-    seen.add(key);
-    merged.push(item);
-  }
-
-  return merged.slice(0, 6);
+  const featured = await getFeaturedAnime({ limit: 24 });
+  return selectHeroSlides(featured, 'Featured');
 }
 
 /**
@@ -201,7 +219,7 @@ export async function getAnimeListAction({ page = 1, pageSize = DEFAULT_PAGE_SIZ
   ];
 
   try {
-    const data = await getReleasedAnime(safePage, limit);
+    const data = await getReleasedAnime({ page: safePage, limit });
     const items = (data.results ?? []).map(mapAnime).filter(Boolean);
 
     return {
@@ -216,7 +234,7 @@ export async function getAnimeListAction({ page = 1, pageSize = DEFAULT_PAGE_SIZ
     };
   } catch (err) {
     try {
-      const fallback = await getTopAnime(safePage);
+      const fallback = await getTopAnime({ page: safePage, limit });
       const items = (fallback.results ?? []).map(mapAnime);
 
       await setCached(
@@ -258,11 +276,8 @@ export async function getAnimeListAction({ page = 1, pageSize = DEFAULT_PAGE_SIZ
         }
       }
 
-      const message =
-        err instanceof AniListApiError
-          ? err.message
-          : 'Failed to load anime right now. Please try again.';
-      return { error: message };
+      console.error('[getAnimeListAction] metadata request failed.', { name: err?.name || 'Error' });
+      return { error: 'Anime metadata is temporarily unavailable.', items: [] };
     }
   }
 }
@@ -273,7 +288,7 @@ export async function getReleasedAnimeAction({ page = 1, limit = 12 } = {}) {
   const cacheKey = `released-anime:v3:${safePage}:${safeLimit}`;
 
   try {
-    const data = await getReleasedAnime(safePage, safeLimit);
+    const data = await getReleasedAnime({ page: safePage, limit: safeLimit });
     const items = (data.results ?? []).map(mapAnime).filter(Boolean);
 
     return {
@@ -302,11 +317,8 @@ export async function getReleasedAnimeAction({ page = 1, limit = 12 } = {}) {
       };
     }
 
-    const message =
-      err instanceof AniListApiError
-        ? err.message
-        : 'Failed to load released anime right now. Please try again.';
-    return { error: message, items: [] };
+    console.error('[getReleasedAnimeAction] metadata request failed.', { name: err?.name || 'Error' });
+    return { error: 'Anime metadata is temporarily unavailable.', items: [] };
   }
 }
 
@@ -314,25 +326,22 @@ export async function getHeroAnimeSlidesAction() {
   try {
     const cached = await getCached(HERO_SLIDES_CACHE_KEY);
     if (cached?.items?.length) {
-      return { success: true, items: cached.items };
+      const items = selectHeroSlides(cached.items, 'Featured');
+      if (items.length) return { success: true, items };
     }
 
     const items = await fetchHeroAnimeSlides();
     await setCached(
       HERO_SLIDES_CACHE_KEY,
       { items },
-      CACHE_TTL.TWELVE_HOURS
+      CACHE_TTL.TWENTY_FOUR_HOURS
     );
 
     return { success: true, items };
   } catch (err) {
     console.error('[getHeroAnimeSlidesAction] failed:', err);
 
-    const message =
-      err instanceof AniListApiError
-        ? err.message
-        : 'Failed to load featured anime.';
-    return { error: message, items: [] };
+    return { error: 'Featured anime is temporarily unavailable.', items: [] };
   }
 }
 
@@ -351,7 +360,7 @@ export async function getTrendingAnimeAction({ page = 1, limit = 12 } = {}) {
       };
     }
 
-    const data = await getTrendingAnime(safePage, safeLimit);
+    const data = await getTrendingAnime({ page: safePage, limit: safeLimit });
     const items = (data.results ?? [])
       .filter(isTvAnimeWithAnilistId)
       .map(mapAnime)
@@ -382,26 +391,29 @@ export async function getTrendingAnimeAction({ page = 1, limit = 12 } = {}) {
       };
     }
 
-    const message =
-      err instanceof AniListApiError
-        ? err.message
-        : 'Failed to load trending anime.';
-    return { error: message, items: [] };
+    return { error: 'Trending anime is temporarily unavailable.', items: [] };
   }
 }
 
 export async function cacheSelectedAnimeAction(anime) {
-  const anilistId = anime?.anilist_id ?? anime?.id ?? null;
-  if (!anilistId) {
+  // This action is also called by the featured carousel. `anime.id` is a UI
+  // identifier there and may be a MAL ID, so it must never be assumed to be
+  // an AniList ID.
+  const anilistId = anime?.anilistId ?? anime?.anilist_id ?? null;
+  const malId = anime?.malId ?? anime?.mal_id ?? null;
+  if (!anilistId && !malId) {
     return { error: 'Anime ID is required.' };
   }
 
-  const slug = anime?.slug || slugify(anime?.title || anime?.title_english || anime?.title_native || String(anilistId));
+  const slug = anime?.slug || slugify(getAnimeDisplayTitle(anime, String(anilistId || malId)));
 
   const payload = {
     ...anime,
-    anilist_id: String(anilistId),
-    id: anime?.id ?? String(anilistId),
+    anilist_id: anilistId != null ? String(anilistId) : null,
+    mal_id: malId != null ? String(malId) : null,
+    anilistId: anilistId != null ? String(anilistId) : null,
+    malId: malId != null ? String(malId) : null,
+    id: anime?.id ?? String(anilistId || malId),
     slug,
     genres: anime?.genres ?? anime?.genre ?? [],
     genre: anime?.genres ?? anime?.genre ?? [],
@@ -412,66 +424,57 @@ export async function cacheSelectedAnimeAction(anime) {
     cachedAt: Date.now(),
   };
 
-  await setCached(
-    `${SELECTED_ANIME_CACHE_PREFIX}:${String(anilistId)}`,
-    payload,
-    CACHE_TTL.TWELVE_HOURS
-  );
+  if (anilistId) {
+    await setCached(
+      `${SELECTED_ANIME_CACHE_PREFIX}:${String(anilistId)}`,
+      payload,
+      CACHE_TTL.TWELVE_HOURS
+    );
+  }
 
-  await setCached(
-    `${SLUG_MAP_PREFIX}:${slug}`,
-    { anilistId: String(anilistId) },
-    CACHE_TTL.TWELVE_HOURS
-  );
+  await storeSlugMapping(slug, { anilistId, malId });
 
   return { success: true, anime: payload };
 }
 
-export async function storeSlugMapping(slug, anilistId) {
-  if (!slug || !anilistId) return;
+export async function storeSlugMapping(slug, { anilistId = null, malId = null } = {}) {
+  if (!slug || (!anilistId && !malId)) return;
   await setCached(
     `${SLUG_MAP_PREFIX}:${slug}`,
-    { anilistId: String(anilistId) },
+    {
+      anilistId: anilistId != null ? String(anilistId) : null,
+      malId: malId != null ? String(malId) : null,
+    },
     CACHE_TTL.TWELVE_HOURS
   );
 }
 
 export async function getAnimeIdBySlugAction(slug) {
-  if (!slug) return { anilistId: null };
+  if (!slug) return { anilistId: null, malId: null };
 
   const normalizedSlug = String(slug).trim();
   if (/^\d+$/.test(normalizedSlug)) {
-    return { anilistId: normalizedSlug };
+    // Existing numeric watch URLs are AniList IDs and must remain so.
+    return { anilistId: normalizedSlug, malId: null };
+  }
+
+  const malRouteMatch = normalizedSlug.match(/^mal-(\d+)$/i);
+  if (malRouteMatch) {
+    return { anilistId: null, malId: malRouteMatch[1] };
   }
 
   const cached = await getCached(`${SLUG_MAP_PREFIX}:${slug}`);
-  if (cached?.anilistId) {
-    return { anilistId: String(cached.anilistId) };
+  if (cached?.anilistId || cached?.malId) {
+    return {
+      anilistId: cached.anilistId != null ? String(cached.anilistId) : null,
+      malId: cached.malId != null ? String(cached.malId) : null,
+    };
   }
 
   try {
-    const query = `
-      query ($search: String) {
-        Page(page: 1, perPage: 5) {
-          media(type: ANIME, search: $search, sort: SEARCH_MATCH) {
-            id
-            title { romaji english native }
-          }
-        }
-      }
-    `;
-
     const searchTitle = normalizedSlug.replace(/-/g, ' ');
-    const res = await fetch('https://graphql.anilist.co', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify({ query, variables: { search: searchTitle } }),
-    });
-
-    if (!res.ok) return { anilistId: null };
-
-    const json = await res.json();
-    const candidates = json?.data?.Page?.media || [];
+    const result = await searchAnime(searchTitle, { page: 1, perPage: 5 });
+    const candidates = result?.results || [];
 
     for (const candidate of candidates) {
       const titles = [candidate.title?.romaji, candidate.title?.english, candidate.title?.native].filter(Boolean);
@@ -479,21 +482,30 @@ export async function getAnimeIdBySlugAction(slug) {
       for (const title of titles) {
         const candidateSlug = slugify(title);
         if (candidateSlug === slug) {
-          await storeSlugMapping(slug, candidate.id);
-          return { anilistId: String(candidate.id) };
+          if (!candidate.anilistId && !candidate.malId) return { anilistId: null, malId: null };
+          const identity = {
+            anilistId: candidate.anilistId != null ? String(candidate.anilistId) : null,
+            malId: candidate.malId != null ? String(candidate.malId) : null,
+          };
+          await storeSlugMapping(slug, identity);
+          return identity;
         }
       }
     }
 
-    if (candidates.length > 0) {
-      await storeSlugMapping(slug, candidates[0].id);
-      return { anilistId: String(candidates[0].id) };
+    if (candidates[0]?.anilistId || candidates[0]?.malId) {
+      const identity = {
+        anilistId: candidates[0].anilistId != null ? String(candidates[0].anilistId) : null,
+        malId: candidates[0].malId != null ? String(candidates[0].malId) : null,
+      };
+      await storeSlugMapping(slug, identity);
+      return identity;
     }
   } catch (err) {
     console.error('[getAnimeIdBySlugAction] Failed to resolve slug:', slug, err);
   }
 
-  return { anilistId: null };
+  return { anilistId: null, malId: null };
 }
 
 export async function getSelectedAnimeCacheAction(anilistId) {
@@ -508,28 +520,26 @@ export async function getSelectedAnimeCacheAction(anilistId) {
 /**
  * Full anime detail view for /anime/[anilist_id].
  */
-export async function getAnimeDetailAction(anilistId) {
-  if (!anilistId) {
-    return { error: 'Anime ID is required.' };
+export async function getAnimeDetailAction(identityOrAniListId) {
+  const identity = typeof identityOrAniListId === 'object' && identityOrAniListId !== null
+    ? identityOrAniListId
+    : { anilistId: identityOrAniListId };
+  if (!identity.anilistId && !identity.malId) {
+    return { error: 'Anime identity is required.' };
   }
 
   try {
-    const data = await getAnimeDetails(anilistId);
+    const data = await getAnime(identity);
     return { anime: mapAnime(data) };
   } catch (err) {
-    const cached = await getCached(`${SELECTED_ANIME_CACHE_PREFIX}:${String(anilistId)}`);
+    const cached = identity.anilistId
+      ? await getCached(`${SELECTED_ANIME_CACHE_PREFIX}:${String(identity.anilistId)}`)
+      : null;
     if (cached) {
-      const message =
-        err instanceof AniListApiError
-          ? err.message
-          : 'Failed to load anime details right now. Showing cached details instead.';
-      return { anime: cached, error: message };
+      return { anime: cached, error: 'Showing saved anime details while live metadata is unavailable.' };
     }
 
-    const message =
-      err instanceof AniListApiError
-        ? err.message
-        : 'Failed to load anime details right now. Please try again.';
-    return { error: message };
+    console.error('[getAnimeDetailAction] metadata request failed.', { name: err?.name || 'Error' });
+    return { error: 'Anime metadata is temporarily unavailable.' };
   }
 }

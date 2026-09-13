@@ -33,9 +33,9 @@ export async function generateMetadata({ params }) {
     };
   }
 
-  const { anilistId } = await getAnimeIdBySlugAction(slug);
+  const identity = await getAnimeIdBySlugAction(slug);
 
-  if (!anilistId) {
+  if (!identity?.anilistId && !identity?.malId) {
     return {
       title: 'Now Watching |',
       description: siteConfig.description,
@@ -43,7 +43,7 @@ export async function generateMetadata({ params }) {
     };
   }
 
-  const anime = await getAnimeOgPayload(anilistId);
+  const anime = await getAnimeOgPayload(identity);
   const displayTitle = anime.title || 'Now Watching';
   const japaneseTitle = anime.japaneseTitle ? ` (${anime.japaneseTitle})` : '';
   const imageUrl = anime.bannerUrl || null;
@@ -95,21 +95,34 @@ export default async function WatchPage({ params }) {
   const slug = getFirst(resolvedParams?.slug) || null;
   const episode = parseEpisodeParam(resolvedParams?.ep);
 
-  let anilistId = null;
+  let identity = { anilistId: null, malId: null };
   let anime = null;
   let error = null;
 
   if (slug) {
     const idResult = await getAnimeIdBySlugAction(slug);
 
-    if (idResult?.anilistId) {
-      anilistId = idResult.anilistId;
-      const { anime: cachedAnime } = await getSelectedAnimeCacheAction(anilistId);
-      const { anime: fetchedAnime, error: fetchError } = await getAnimeDetailAction(anilistId);
+    if (idResult?.anilistId || idResult?.malId) {
+      identity = {
+        anilistId: idResult.anilistId ?? null,
+        malId: idResult.malId ?? null,
+      };
+      const { anime: cachedAnime } = identity.anilistId
+        ? await getSelectedAnimeCacheAction(identity.anilistId)
+        : { anime: null };
+      const { anime: fetchedAnime, error: fetchError } = await getAnimeDetailAction(identity);
       anime = fetchedAnime ? { ...(cachedAnime || {}), ...fetchedAnime } : cachedAnime;
       if (fetchError) error = fetchError;
     }
   }
+
+  // The metadata service can resolve a catalog mapping that was not present
+  // in the slug cache, so prefer the fetched canonical identity when present.
+  identity = {
+    anilistId: anime?.anilistId ?? anime?.anilist_id ?? identity.anilistId,
+    malId: anime?.malId ?? anime?.mal_id ?? identity.malId,
+  };
+  const hasStreamingIdentity = Boolean(identity.anilistId || identity.malId);
 
   const displayTitle = anime?.title_english || anime?.title || 'Now Watching';
   const posterUrl = anime?.poster_image || 'https://placehold.co/600x900/111111/f97316?text=No+Image';
@@ -144,16 +157,16 @@ export default async function WatchPage({ params }) {
           <section className="overflow-hidden">
             <div className="relative p-2 md:p-6">
               <div className="relative">
-                {anilistId ? (
+                {hasStreamingIdentity ? (
                   <Suspense
                     fallback={
                       <div className="aspect-video w-full animate-pulse rounded-xl border border-white/[0.05] bg-white/[0.02] md:rounded-[22px]" />
                     }
                   >
                     <WatchPlayer
-                      key={`${anilistId}-${episode}`}
+                      key={`${identity.anilistId || `mal-${identity.malId}`}-${episode}`}
                       initialAnime={anime}
-                      initialAnimeId={anilistId}
+                      initialAnimeIdentity={identity}
                       initialEpisode={episode}
                     />
                   </Suspense>
