@@ -30,6 +30,33 @@ export async function updateSession(request) {
     data: { user },
   } = await supabase.auth.getUser();
 
+  // Admin pages require both a valid session and an admin role. Check the
+  // role in the database because role changes are stored on the profile.
+  const isAdminRoute =
+    request.nextUrl.pathname === "/admin" ||
+    request.nextUrl.pathname.startsWith("/admin/");
+
+  if (isAdminRoute) {
+    let isAdmin = false;
+
+    if (user) {
+      const { data: profile, error } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      isAdmin = !error && profile?.role === "admin";
+    }
+
+    if (!isAdmin) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/home";
+      url.search = "";
+      return NextResponse.redirect(url);
+    }
+  }
+
   // Protect routes that require auth
   const protectedRoutes = ['/profile', '/settings', '/watchlist', '/user'];
   const isProtected = protectedRoutes.some((route) =>
