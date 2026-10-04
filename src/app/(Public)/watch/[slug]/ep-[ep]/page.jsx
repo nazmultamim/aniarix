@@ -240,12 +240,12 @@ export default async function WatchPage({ params }) {
               </div>
 
             </div>
-            <div className="mt-3 flex  gap-2">
+            <div className="mt-3 flex min-w-0 flex-wrap gap-2">
               {genres.length > 0 ? (
                 genres.map((genre) => (
                   <span
                     key={genre}
-                    className="cursor-pointer rounded-md border border-[#f09527]/40 px-2.5 py-1 text-[11.5px] text-[#f39933] transition-colors hover:bg-[#f0982e]/10 sm:text-[12px]"
+                    className="max-w-full break-words cursor-pointer rounded-md border border-[#f09527]/40 px-2.5 py-1 text-[11.5px] text-[#f39933] transition-colors hover:bg-[#f0982e]/10 sm:text-[12px]"
                   >
                     {genre}
                   </span>
