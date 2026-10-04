@@ -46,6 +46,34 @@ export function buildMegaPlayStreamUrl({ anilistId = null, malId = null } = {}, 
     || buildMalStreamUrl(malId, episode, language);
 }
 
+/** Return the other ID-based endpoint when the preferred mapping fails. */
+export function buildAlternateMegaPlayStreamUrl({ anilistId = null, malId = null } = {}, episode, language = STREAM_LANGUAGES.SUB) {
+  const primary = buildMegaPlayStreamUrl({ anilistId, malId }, episode, language);
+  const alternatives = [
+    buildAniListStreamUrl(anilistId, episode, language),
+    buildMalStreamUrl(malId, episode, language),
+  ];
+  return alternatives.find((url) => url && url !== primary) || null;
+}
+
+/** Build ordered recovery URLs without repeating the currently selected URL. */
+export function buildMegaPlayFallbackUrls(identity, episode, language = STREAM_LANGUAGES.SUB) {
+  const normalizedIdentity = typeof identity === 'object' && identity !== null
+    ? identity
+    : { anilistId: identity };
+  const primary = buildMegaPlayStreamUrl(normalizedIdentity, episode, language);
+  const fallbackLanguage = getFallbackLanguage(language);
+  const candidates = [
+    buildAlternateMegaPlayStreamUrl(normalizedIdentity, episode, language),
+    fallbackLanguage ? buildMegaPlayStreamUrl(normalizedIdentity, episode, fallbackLanguage) : null,
+    fallbackLanguage
+      ? buildAlternateMegaPlayStreamUrl(normalizedIdentity, episode, fallbackLanguage)
+      : null,
+  ];
+
+  return [...new Set(candidates.filter((url) => url && url !== primary))];
+}
+
 /**
  * Legacy AniList-only API retained for existing callers. New dual-ID callers
  * should use buildMegaPlayStreamUrl().

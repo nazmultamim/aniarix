@@ -250,13 +250,15 @@ function normalizeVidnestEvent(data, context) {
   return null;
 }
 
-function isMegaplayEvent(data) {
+function isMegaplayEvent(event, data) {
   return (
-    data?.channel === 'megacloud' ||
-    data?.type === 'watching-log' ||
-    data?.event === 'time' ||
-    data?.event === 'complete' ||
-    data?.event === 'error'
+    event?.origin === 'https://megaplay.buzz' && (
+      data?.channel === 'megacloud' ||
+      data?.type === 'watching-log' ||
+      data?.event === 'time' ||
+      data?.event === 'complete' ||
+      data?.event === 'error'
+    )
   );
 }
 
@@ -279,7 +281,7 @@ function handlePlayerMessage(event, context, callbacks = {}) {
 
   let normalized = null;
 
-  if (isMegaplayEvent(data)) {
+  if (isMegaplayEvent(event, data)) {
     normalized = normalizeMegaplayEvent(data, context);
   } else if (isVidnestEvent(event, data)) {
     normalized = normalizeVidnestEvent(data, context);

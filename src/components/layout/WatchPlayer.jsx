@@ -20,6 +20,7 @@ import {
   List as ListIcon,
 } from 'lucide-react';
 import { DEFAULT_SERVER, SERVERS, buildEmbedUrl } from '@/services/servers.config';
+import { buildMegaPlayFallbackUrls } from '@/services/Megaplay.service';
 import { handlePlayerMessage, getProgressEntry } from '@/services/progressTracker.service';
 import { slugify } from '@/lib/slugify';
 import { saveProgressThrottled, saveProgressNow, resetThrottle } from '@/services/watchHistory.client';
@@ -91,6 +92,7 @@ export default function WatchPlayer({ initialAnimeId = null, initialAnimeIdentit
   const [theatreMode, setTheatreMode] = useState(false);
   const [pageIndex, setPageIndex] = useState(() => Math.floor((episode - 1) / EPISODES_PER_PAGE));
   const [playerLoading, setPlayerLoading] = useState(true);
+  const [megaplayFallback, setMegaplayFallback] = useState(null);
   const [resumeTime, setResumeTime] = useState(0);
 
   // ── Episode list panel — layout + search ──
@@ -100,6 +102,10 @@ export default function WatchPlayer({ initialAnimeId = null, initialAnimeIdentit
   // ── Watch status (Watching/Completed/On-Hold/Dropped/Plan to Watch) ──
   const [currentStatus, setCurrentStatus] = useState('watching');
 
+  const primaryEmbedUrl = buildEmbedUrl(serverId, animeIdentity, episode, language);
+  const embedUrl = megaplayFallback?.primaryUrl === primaryEmbedUrl
+    ? megaplayFallback.url
+    : primaryEmbedUrl;
   const latestProgressRef = useRef({ currentTime: 0, duration: 0, completed: false });
   const contextRef = useRef({ anilistId, malId, episode, language, serverId, pageTitle, posterUrl });
   contextRef.current = { anilistId, malId, episode, language, serverId, pageTitle, posterUrl };
@@ -292,6 +298,24 @@ export default function WatchPlayer({ initialAnimeId = null, initialAnimeIdentit
             }
           },
           onError: (entry) => {
+            const fallbackUrls = serverId === 'megaplay'
+              ? buildMegaPlayFallbackUrls(animeIdentity, episode, language)
+              : [];
+            const previousAttempts = megaplayFallback?.primaryUrl === primaryEmbedUrl
+              ? megaplayFallback.attemptedUrls
+              : [primaryEmbedUrl];
+            const nextUrl = fallbackUrls.find((url) => !previousAttempts.includes(url));
+
+            if (nextUrl) {
+              setMegaplayFallback({
+                primaryUrl: primaryEmbedUrl,
+                url: nextUrl,
+                attemptedUrls: [...previousAttempts, embedUrl, nextUrl],
+              });
+              setPlayerLoading(true);
+              return;
+            }
+
             setPlayerLoading(false);
             console.error('Player error:', entry);
           },
@@ -304,7 +328,7 @@ export default function WatchPlayer({ initialAnimeId = null, initialAnimeIdentit
 
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, [anilistId, autoNext, episode, handleEpisodeSelect, hasStreamingIdentity, language, malId, pageTitle, posterUrl, progressId, serverId, totalEpisodes, currentStatus]);
+  }, [anilistId, autoNext, embedUrl, primaryEmbedUrl, episode, handleEpisodeSelect, hasStreamingIdentity, language, malId, pageTitle, posterUrl, progressId, serverId, totalEpisodes, currentStatus]);
 
   useEffect(() => {
     if (!progressId || !episode) return;
@@ -374,7 +398,6 @@ export default function WatchPlayer({ initialAnimeId = null, initialAnimeIdentit
     );
   }
 
-  const embedUrl = buildEmbedUrl(serverId, animeIdentity, episode, language);
   const showLoading = playerLoading && Boolean(embedUrl);
   const pageCount = Math.ceil(totalEpisodes / EPISODES_PER_PAGE);
   const pageStart = pageIndex * EPISODES_PER_PAGE + 1;

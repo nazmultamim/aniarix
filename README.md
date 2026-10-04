@@ -206,6 +206,8 @@ For full schema details, triggers, functions, and security policies, refer to [`
 
 ---
 
+
 ## 📄 License
 
-This project is open-source and available under standard repository terms.
+This project is private and intended for personal use only. All rights are reserved by the author. Unauthorized copying, modification, distribution, or commercial use is strictly prohibited without prior written permission.
+

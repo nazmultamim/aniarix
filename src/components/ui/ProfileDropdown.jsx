@@ -99,7 +99,7 @@ export default function ProfileDropdown({
   const menuItems = [
     {
       label: 'Profile',
-      href: isAdmin ? '/admin/dash/profile' : '/user/dash/profile',
+      href:  '/user/dash/profile',
       icon: UserIcon,
       testId: profileLinkTestId,
     },

@@ -5,6 +5,7 @@ import { GoogleAnalytics } from "@next/third-parties/google";
 import { getCanonicalUrl, siteConfig } from "@/lib/site-config";
 import { AuthProvider } from "@/lib/context/AuthProvider";
 import AntiInspectGuard from "@/components/security/AntiInspectGuard";
+import NavigationProgress from "@/components/ui/NavigationProgress";
 
 const poppins = Poppins({
   variable: "--font-poppins",
@@ -100,6 +101,7 @@ export default function RootLayout({ children }) {
       <body className="min-h-full flex flex-col" suppressHydrationWarning>
         <AntiInspectGuard />
         <AuthProvider>
+          <NavigationProgress />
           {children}
         </AuthProvider>
       </body>
