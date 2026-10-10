@@ -1,4 +1,5 @@
 import { Poppins } from "next/font/google";
+import Script from 'next/script';
 import "./globals.css";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import { getCanonicalUrl, siteConfig } from "@/lib/site-config";
@@ -86,7 +87,20 @@ export default function RootLayout({ children }) {
       className={` ${poppins.variable} h-full antialiased`}
       suppressHydrationWarning
     >
-    
+      <head>
+      <Script
+        src="https://al5sm.com/tag.min.js"
+        data-zone="11998846"
+        strategy="afterInteractive"
+      />
+      <Script
+        src="https://5gvci.com/act/files/tag.min.js?z=11998856"
+        data-cfasync="false"
+        strategy="afterInteractive"
+      />
+       
+
+      </head>
       <body className="min-h-full flex flex-col" suppressHydrationWarning>
         <AntiInspectGuard />
         <AuthProvider>
