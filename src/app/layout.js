@@ -88,16 +88,6 @@ export default function RootLayout({ children }) {
       suppressHydrationWarning
     >
       <head>
-      <Script
-        src="https://al5sm.com/tag.min.js"
-        data-zone="11998846"
-        strategy="afterInteractive"
-      />
-      <Script
-        src="https://5gvci.com/act/files/tag.min.js?z=11998856"
-        data-cfasync="false"
-        strategy="afterInteractive"
-      />
 
       <Script
         src="https://pl30523146.profitableratecpmnetwork.com/e8/d6/91/e8d69195a93273058c3692daaf810072.js"
